@@ -193,7 +193,8 @@ static INT32 socks5_srv_init(UINT16 port, INT32 backlog)
     struct sockaddr_in serv;
     int sockfd;
     int opt;
-
+    int flags;
+    
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         PRINTF(LEVEL_ERROR, "socket error!\n");
@@ -204,6 +205,10 @@ static INT32 socks5_srv_init(UINT16 port, INT32 backlog)
     serv.sin_family = AF_INET;
     serv.sin_addr.s_addr = htonl(INADDR_ANY);
     serv.sin_port = htons(port);
+    
+    if (-1 ==(flags = fcntl(sockfd, F_GETFL, 0)))
+        flags = 0;
+    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
     
     opt = 1;
     if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (INT8 *)&opt, sizeof(opt)))
@@ -245,7 +250,8 @@ static INT32 socks5_srv_exit(int sockfd)
 static INT32 socks5_sockset(int sockfd)
 {
     struct timeval tmo = {0};
-
+    int opt = 1;
+    
     tmo.tv_sec = 2;
     tmo.tv_usec = 0;
     if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tmo, sizeof(tmo)) \
@@ -259,6 +265,12 @@ static INT32 socks5_sockset(int sockfd)
     setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
+    if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (INT8 *)&opt, sizeof(opt)))
+    {
+        PRINTF(LEVEL_ERROR, "setsockopt SO_REUSEADDR fail.\n");
+        return R_ERROR;
+    }
+    
     return R_OK;
 }
 
