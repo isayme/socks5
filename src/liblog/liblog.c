@@ -29,32 +29,27 @@ static uint32_t g_range_srart = 0;
 static uint32_t g_range_end = -1;
 //static uint64_t g_dlevel = LEVEL_DEBUG;
 
-static int32_t log_init()
-{
+static int32_t log_init() {
     uint8_t *log_file_path;
     uint8_t *log_path;
     time_t log_t = 0;
     struct tm log_tm = {0};
     uint8_t *tmp;
 
-    if (NULL == g_logfile)
-    {
+    if (NULL == g_logfile) {
         log_path = malloc(PATH_MAX);
-        if (NULL == log_path)
-        {
+        if (NULL == log_path) {
             goto _err;
         }
         log_file_path = malloc(PATH_MAX);
-        if (NULL == log_file_path)
-        {
+        if (NULL == log_file_path) {
             goto _err;
         }
 
         memset((void*)log_path, 0x00, PATH_MAX);
         memset((void*)log_file_path, 0x00, PATH_MAX);
 
-        if (-1 == readlink("/proc/self/exe", log_path, PATH_MAX))
-        {
+        if (-1 == readlink("/proc/self/exe", log_path, PATH_MAX)) {
             goto _err;
         }
         tmp = dirname(log_path);
@@ -68,98 +63,81 @@ static int32_t log_init()
 
         g_logfile = fopen(log_file_path, "a");
 
-        if (NULL == g_logfile)
-        {
+        if (NULL == g_logfile) {
             goto _err;
-        }
-        else
-        {
+        } else {
             printf("\r");
             liblog_log(LEVEL_DEBUG | COLOR_GREEN, "open log file %s ok.\n", log_file_path);
         }
     }
 
-        if (NULL != log_file_path)
-    {
+    if (NULL != log_file_path) {
         free(log_file_path);
     }
-    if (NULL != log_path)
-    {
+    if (NULL != log_path) {
         free(log_path);
     }
     return 0;
 _err:
-    if (NULL != log_file_path)
-    {
+    if (NULL != log_file_path) {
         free(log_file_path);
     }
-    if (NULL != log_path)
-    {
+    if (NULL != log_path) {
         free(log_path);
     }
     return -1;
 }
 
-int32_t liblog_level(uint64_t level)
-{
+int32_t liblog_level(uint64_t level) {
     g_dlevel =  ((uint64_t)level<<LEVEL_POS) & LEVEL_MASK;
+    return g_dlevel;
 }
 
-void liblog_range(uint32_t start, uint32_t end)
-{
+void liblog_range(uint32_t start, uint32_t end) {
     g_range_srart = start;
     g_range_end = end;
 }
 
-uint32_t liblog_range_start()
-{
+uint32_t liblog_range_start() {
     return g_range_srart;
 }
-uint32_t liblog_range_end()
-{
+uint32_t liblog_range_end() {
     return g_range_end;
 }
 
-int32_t liblog_log(uint64_t mode, char *format, ...)
-{
+int32_t liblog_log(uint64_t mode, char *format, ...) {
     uint        str[1024] = {0};
     uint64_t      dlevel = -1;
     va_list     arg;
 
     dlevel = mode & LEVEL_MASK;
 
-    if (g_dlevel > dlevel)
-    {
+    if (g_dlevel > dlevel) {
         return 0;
     }
 
-    if (LEVEL_ERROR == dlevel)
-    {
+    if (LEVEL_ERROR == dlevel) {
         mode &= COLOR_MASK;
         mode |= COLOR_RED;
     }
 
     // ensure logfile has been opened
-    if (NULL == g_logfile)
-    {
-        if (-1 == log_init())
-        {
+    if (NULL == g_logfile) {
+        if (-1 == log_init()) {
             printf("init log file error\n");
             return -1;
         }
     }
 
     // show different color for shell console
-    if (1 == isatty(STDOUT_FILENO))
-    {
+    if (1 == isatty(STDOUT_FILENO)) {
         uint color = (uint)((mode & COLOR_MASK) >> COLOR_POS);
         if (0 == color) color = 9;
         fprintf(stdout, "\033[%d;49;%dm", (uint)((mode & TEXT_MASK) >> TEXT_POS), 30 + color);
     }
 
     // show time
-    if (TIME_SHOW == (mode & TIME_MASK))
-    {
+    if (TIME_SHOW == (mode & TIME_MASK)) {
         uint cur_time[128];
         struct tm ptm = {0};
         time_t t = time(NULL);
@@ -181,8 +159,7 @@ int32_t liblog_log(uint64_t mode, char *format, ...)
     vfprintf(g_logfile, format, arg);
     va_end(arg);
 
-    if (1 == isatty(STDOUT_FILENO))
-    {
+    if (1 == isatty(STDOUT_FILENO)) {
         fprintf(stdout, "\033[0m");
     }
 
