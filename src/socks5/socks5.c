@@ -22,7 +22,7 @@
 #include "liblog.h"
 #include "socks5.h"
 
-static INT32 g_state = SOCKS5_STATE_PREPARE;
+static int32_t g_state = SOCKS5_STATE_PREPARE;
 
 static int g_sockfd = 0;
 static socks5_cfg_t g_cfg = {0};
@@ -30,16 +30,16 @@ struct ev_loop *g_loop = NULL;
 struct ev_io g_io_accept;
 
 static void help();
-static INT32 check_para(int argc, char **argv);
+static int32_t check_para(int argc, char **argv);
 // signal信号回调函数
 static void signal_func(int sig);
 // singal信号注册初始化
 static void signal_init();
 
-static INT32 socks5_srv_init(UINT16 port, INT32 backlog);
-static INT32 socks5_srv_exit(int sockfd);
+static int32_t socks5_srv_init(uint16_t port, int32_t backlog);
+static int32_t socks5_srv_exit(int sockfd);
 
-static INT32 socks5_sockset(int sockfd);
+static int32_t socks5_sockset(int sockfd);
 
 static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents);
 static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents);
@@ -88,10 +88,10 @@ static void help()
     printf("    -l <level>      debug log level,range [0, 5]\n");
     printf("    -h              print help information\n");
 }
-static INT32 check_para(int argc, char **argv)
+static int32_t check_para(int argc, char **argv)
 {
     int ch;
-    INT32 bdaemon = 0;
+    int32_t bdaemon = 0;
 
     memset(&g_cfg, 0, sizeof(g_cfg));
 
@@ -187,7 +187,7 @@ static void signal_func(int sig)
     }
 }
 
-static INT32 socks5_srv_init(UINT16 port, INT32 backlog)
+static int32_t socks5_srv_init(uint16_t port, int32_t backlog)
 {
     struct sockaddr_in serv;
     int sockfd;
@@ -210,7 +210,7 @@ static INT32 socks5_srv_init(UINT16 port, INT32 backlog)
     fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
 
     opt = 1;
-    if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (INT8 *)&opt, sizeof(opt)))
+    if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (uint *)&opt, sizeof(opt)))
     {
         PRINTF(LEVEL_ERROR, "setsockopt SO_REUSEADDR fail.\n");
         return -1;
@@ -238,7 +238,7 @@ static INT32 socks5_srv_init(UINT16 port, INT32 backlog)
     return sockfd;
 }
 
-static INT32 socks5_srv_exit(int sockfd)
+static int32_t socks5_srv_exit(int sockfd)
 {
     if (0 != sockfd)
         close(sockfd);
@@ -246,7 +246,7 @@ static INT32 socks5_srv_exit(int sockfd)
     return 0;
 }
 
-static INT32 socks5_sockset(int sockfd)
+static int32_t socks5_sockset(int sockfd)
 {
     struct timeval tmo = {0};
     int opt = 1;
@@ -264,7 +264,7 @@ static INT32 socks5_sockset(int sockfd)
     setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
-    if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (INT8 *)&opt, sizeof(opt)))
+    if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (uint *)&opt, sizeof(opt)))
     {
         PRINTF(LEVEL_ERROR, "setsockopt SO_REUSEADDR fail.\n");
         return -1;
@@ -273,7 +273,7 @@ static INT32 socks5_sockset(int sockfd)
     return 0;
 }
 
-static INT32 socks5_auth(int sockfd)
+static int32_t socks5_auth(int sockfd)
 {
     int remote = 0;
     char buff[BUFFER_SIZE];

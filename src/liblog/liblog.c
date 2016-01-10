@@ -12,7 +12,7 @@
 #include "defs.h"
 #include "liblog.h"
 
-static const UINT8 g_debug_str[8][8] = {
+static const uint8_t g_debug_str[8][8] = {
     "TESTS",
     "DEBUG",
     "INFOM",
@@ -24,18 +24,18 @@ static const UINT8 g_debug_str[8][8] = {
 };
 
 static FILE *g_logfile = NULL;
-static UINT64 g_dlevel = LEVEL_INFORM;
-static UINT32 g_range_srart = 0;
-static UINT32 g_range_end = -1;
-//static UINT64 g_dlevel = LEVEL_DEBUG;
+static uint64_t g_dlevel = LEVEL_INFORM;
+static uint32_t g_range_srart = 0;
+static uint32_t g_range_end = -1;
+//static uint64_t g_dlevel = LEVEL_DEBUG;
 
-static INT32 log_init()
+static int32_t log_init()
 {
-    UINT8 *log_file_path;
-    UINT8 *log_path;
+    uint8_t *log_file_path;
+    uint8_t *log_path;
     time_t log_t = 0;
     struct tm log_tm = {0};
-    UINT8 *tmp;
+    uint8_t *tmp;
 
     if (NULL == g_logfile)
     {
@@ -100,30 +100,30 @@ _err:
     return -1;
 }
 
-INT32 liblog_level(UINT64 level)
+int32_t liblog_level(uint64_t level)
 {
-    g_dlevel =  ((UINT64)level<<LEVEL_POS) & LEVEL_MASK;
+    g_dlevel =  ((uint64_t)level<<LEVEL_POS) & LEVEL_MASK;
 }
 
-void liblog_range(UINT32 start, UINT32 end)
+void liblog_range(uint32_t start, uint32_t end)
 {
     g_range_srart = start;
     g_range_end = end;
 }
 
-UINT32 liblog_range_start()
+uint32_t liblog_range_start()
 {
     return g_range_srart;
 }
-UINT32 liblog_range_end()
+uint32_t liblog_range_end()
 {
     return g_range_end;
 }
 
-INT32 liblog_log(UINT64 mode, char *format, ...)
+int32_t liblog_log(uint64_t mode, char *format, ...)
 {
-    INT8        str[1024] = {0};
-    UINT64      dlevel = -1;
+    uint        str[1024] = {0};
+    uint64_t      dlevel = -1;
     va_list     arg;
 
     dlevel = mode & LEVEL_MASK;
@@ -152,15 +152,15 @@ INT32 liblog_log(UINT64 mode, char *format, ...)
     // show different color for shell console
     if (1 == isatty(STDOUT_FILENO))
     {
-        INT8 color = (INT8)((mode & COLOR_MASK) >> COLOR_POS);
+        uint color = (uint)((mode & COLOR_MASK) >> COLOR_POS);
         if (0 == color) color = 9;
-        fprintf(stdout, "\033[%d;49;%dm", (INT8)((mode & TEXT_MASK) >> TEXT_POS), 30 + color);
+        fprintf(stdout, "\033[%d;49;%dm", (uint)((mode & TEXT_MASK) >> TEXT_POS), 30 + color);
     }
 
     // show time
     if (TIME_SHOW == (mode & TIME_MASK))
     {
-        INT8 cur_time[128];
+        uint cur_time[128];
         struct tm ptm = {0};
         time_t t = time(NULL);
 

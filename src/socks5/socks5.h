@@ -18,7 +18,7 @@ typedef void (*libev_cb)(EV_P_ struct type *w, int revents);
 typedef struct socks5_cfg_t {
     time_t start_time;
 #define SOCKS5_PORT 1080
-    UINT16 port;
+    uint16_t port;
 }socks5_cfg_t;
 
 #define SOCKS5_VERSION 0x05
@@ -31,22 +31,22 @@ typedef struct socks5_cfg_t {
 
 typedef struct socks5_method_req_t
 {
-    UINT8 ver;
-    UINT8 nmethods;
+    uint8_t ver;
+    uint8_t nmethods;
 }socks5_method_req_t;
 
 typedef struct socks5_method_res_t
 {
-    UINT8 ver;
-    UINT8 method;
+    uint8_t ver;
+    uint8_t method;
 }socks5_method_res_t;
 
 typedef struct socks5_request_t
 {
-    UINT8 ver;
-    UINT8 cmd;
-    UINT8 rsv;
-    UINT8 atype;
+    uint8_t ver;
+    uint8_t cmd;
+    uint8_t rsv;
+    uint8_t atype;
 }socks5_request_t;
 
 typedef socks5_request_t socks5_response_t;
