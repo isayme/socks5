@@ -1,11 +1,6 @@
 #ifndef _DEFS_H
 #define _DEFS_H
 
-// define function return value macro
-#define R_ERROR		-1
-#undef R_OK
-#define R_OK    0
-
 // typedef some data type for global use
 typedef signed char	        INT8;
 typedef unsigned char       UINT8;

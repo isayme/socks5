@@ -15,19 +15,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
- 
+
 #include <ev.h>
 
 #include "defs.h"
 #include "liblog.h"
-#include "libdaemon.h"
 #include "socks5.h"
 
 static INT32 g_state = SOCKS5_STATE_PREPARE;
 
 static int g_sockfd = 0;
 static socks5_cfg_t g_cfg = {0};
-struct ev_loop *g_loop = NULL;  
+struct ev_loop *g_loop = NULL;
 struct ev_io g_io_accept;
 
 static void help();
@@ -47,10 +46,10 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents);
 
 int main(int argc, char **argv)
 {
-    if (R_ERROR == check_para(argc, argv))
+    if (-1 == check_para(argc, argv))
     {
         PRINTF(LEVEL_ERROR, "check argument error.\n");
-        return R_ERROR;
+        return -1;
     }
 
     signal_init();
@@ -58,20 +57,20 @@ int main(int argc, char **argv)
     PRINTF(LEVEL_INFORM, "socks5 starting ...\n");
 
     g_sockfd = socks5_srv_init(g_cfg.port, 10);
-    if (R_ERROR == g_sockfd)
+    if (-1 == g_sockfd)
     {
         PRINTF(LEVEL_ERROR, "socks server init error.\n");
-        return R_ERROR;
+        return -1;
     }
 
     g_state = SOCKS5_STATE_RUNNING;
 
     g_loop = ev_default_loop(0);
-    // 初始化,这里监听了io事件,写法参考官方文档的  
-    ev_io_init(&g_io_accept, accept_cb, g_sockfd, EV_READ);  
+    // 初始化,这里监听了io事件,写法参考官方文档的
+    ev_io_init(&g_io_accept, accept_cb, g_sockfd, EV_READ);
     ev_io_start(g_loop, &g_io_accept);
 
-    ev_loop(g_loop, 0); 
+    ev_loop(g_loop, 0);
 
     PRINTF(LEVEL_INFORM, "time to exit.\n");
     socks5_srv_exit(g_sockfd);
@@ -117,7 +116,7 @@ static INT32 check_para(int argc, char **argv)
                 if (0 > atoi(optarg) || 5 < atoi(optarg))
                 {
                     printf("debug level [%s] out of range [0 - 5].\n", optarg);
-                    return R_ERROR;
+                    return -1;
                 }
                 liblog_level(atoi(optarg));
                 printf("log level [%d].\n", atoi(optarg));
@@ -142,11 +141,11 @@ static INT32 check_para(int argc, char **argv)
         }
     }
 
-    if (bdaemon)
-    {
-        daemonize();
+    if (bdaemon) {
+        daemon(1, 1);
     }
-    return R_OK;
+
+    return 0;
 }
 
 static void signal_init()
@@ -194,46 +193,46 @@ static INT32 socks5_srv_init(UINT16 port, INT32 backlog)
     int sockfd;
     int opt;
     int flags;
-    
+
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         PRINTF(LEVEL_ERROR, "socket error!\n");
-        return R_ERROR;
+        return -1;
     }
 
     bzero((char *)&serv, sizeof(serv));
     serv.sin_family = AF_INET;
     serv.sin_addr.s_addr = htonl(INADDR_ANY);
     serv.sin_port = htons(port);
-    
+
     if (-1 ==(flags = fcntl(sockfd, F_GETFL, 0)))
         flags = 0;
     fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-    
+
     opt = 1;
     if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (INT8 *)&opt, sizeof(opt)))
     {
         PRINTF(LEVEL_ERROR, "setsockopt SO_REUSEADDR fail.\n");
-        return R_ERROR;
+        return -1;
     }
-    #ifdef SO_NOSIGPIPE 
-    if (-1 == setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt)))
+    #ifdef SO_NOSIGPIPE
+    if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt)))
     {
         PRINTF(LEVEL_ERROR, "setsockopt SO_NOSIGPIPE fail.\n");
-        return R_ERROR;
+        return -1;
     }
     #endif
 
     if (bind(sockfd, (struct sockaddr *)&serv, sizeof(serv)) < 0)
     {
         PRINTF(LEVEL_ERROR, "bind error [%d]\n", errno);
-        return R_ERROR;
+        return -1;
     }
-    
+
     if (listen(sockfd, backlog) < 0)
     {
         PRINTF(LEVEL_ERROR, "listen error!\n");
-        return R_ERROR;
+        return -1;
     }
 
     return sockfd;
@@ -244,21 +243,21 @@ static INT32 socks5_srv_exit(int sockfd)
     if (0 != sockfd)
         close(sockfd);
 
-    return R_OK;  
+    return 0;
 }
 
 static INT32 socks5_sockset(int sockfd)
 {
     struct timeval tmo = {0};
     int opt = 1;
-    
+
     tmo.tv_sec = 2;
     tmo.tv_usec = 0;
     if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tmo, sizeof(tmo)) \
         || -1 == setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&tmo, sizeof(tmo)))
     {
          PRINTF(LEVEL_ERROR, "setsockopt error.\n");
-         return R_ERROR;
+         return -1;
     }
 
 #ifdef SO_NOSIGPIPE
@@ -268,10 +267,10 @@ static INT32 socks5_sockset(int sockfd)
     if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (INT8 *)&opt, sizeof(opt)))
     {
         PRINTF(LEVEL_ERROR, "setsockopt SO_REUSEADDR fail.\n");
-        return R_ERROR;
+        return -1;
     }
-    
-    return R_OK;
+
+    return 0;
 }
 
 static INT32 socks5_auth(int sockfd)
@@ -336,7 +335,7 @@ static INT32 socks5_auth(int sockfd)
         buff[ret] = 0;
         if (-1 == recv(sockfd, buff, ret, 0)) GOTO_ERR;
         hptr = gethostbyname(buff);
-        PRINTF(LEVEL_DEBUG, "type : domain [%s].\n", buff); 
+        PRINTF(LEVEL_DEBUG, "type : domain [%s].\n", buff);
 
         if (NULL == hptr) GOTO_ERR;
         if (AF_INET != hptr->h_addrtype) GOTO_ERR;
@@ -359,7 +358,7 @@ static INT32 socks5_auth(int sockfd)
 
     if ((remote = socket(AF_INET, SOCK_STREAM, 0)) < 0) GOTO_ERR;
     socks5_sockset(remote);
-    
+
     if (0 > connect(remote, (struct sockaddr *)&addr, sizeof(addr)))// GOTO_ERR;
     {
         PRINTF(LEVEL_ERROR, "connect error.\n");
@@ -384,24 +383,24 @@ static INT32 socks5_auth(int sockfd)
 
 _err:
     if (0 != remote) close(remote);
-    return R_ERROR;
+    return -1;
 }
 
 static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 {
-    struct sockaddr_in client_addr;  
-    socklen_t client_len = sizeof(client_addr);  
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
     int client_fd = 0;
     int remote_fd;
-      
-    //libev的错误处理  
-    if(EV_ERROR & revents)  
-    {  
-        PRINTF(LEVEL_ERROR, "error event in accept.\n");
-        return;  
-    }  
 
-    //分派客户端的ev io结构  
+    //libev的错误处理
+    if(EV_ERROR & revents)
+    {
+        PRINTF(LEVEL_ERROR, "error event in accept.\n");
+        return;
+    }
+
+    //分派客户端的ev io结构
     struct ev_io *w_client = (struct ev_io*) malloc (sizeof(struct ev_io));
     struct ev_io *w_serv = (struct ev_io*) malloc (sizeof(struct ev_io));
     if (NULL == w_client || NULL == w_serv)
@@ -412,17 +411,17 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
         if (w_serv) free(w_serv);
         return;
     }
-      
-    //accept,普通写法  
-    client_fd = accept(watcher->fd, (struct sockaddr *)&client_addr, &client_len);  
-    if (client_fd < 0)  
+
+    //accept,普通写法
+    client_fd = accept(watcher->fd, (struct sockaddr *)&client_addr, &client_len);
+    if (client_fd < 0)
     {
         free(w_client);
         free(w_serv);
-        return;  
-    }  
-    
-    if (R_ERROR == (remote_fd = socks5_auth(client_fd)))
+        return;
+    }
+
+    if (-1 == (remote_fd = socks5_auth(client_fd)))
     {
         PRINTF(LEVEL_ERROR, "auth error.\n");
         close(client_fd);
@@ -432,34 +431,34 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
     }
 
     w_client->data = w_serv;
-    ev_io_init(w_client, read_cb, client_fd, EV_READ);  
-    ev_io_start(loop, w_client); 
+    ev_io_init(w_client, read_cb, client_fd, EV_READ);
+    ev_io_start(loop, w_client);
 
     w_serv->data = w_client;
-    ev_io_init(w_serv, read_cb, remote_fd, EV_READ);  
-    ev_io_start(loop, w_serv); 
+    ev_io_init(w_serv, read_cb, remote_fd, EV_READ);
+    ev_io_start(loop, w_serv);
 
     return;
 }
 
 static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
-{  
-    char buffer[BUFFER_SIZE];  
-    ssize_t read;  
-      
-    if(EV_ERROR & revents)  
-    {  
-      PRINTF(LEVEL_ERROR, "error event in read.\n");  
-      return;  
-    }  
-      
-    //recv普通socket写法  
-    read = recv(watcher->fd, buffer, BUFFER_SIZE, 0);    
-    if(read < 0)  
-    {  
+{
+    char buffer[BUFFER_SIZE];
+    ssize_t read;
+
+    if(EV_ERROR & revents)
+    {
+      PRINTF(LEVEL_ERROR, "error event in read.\n");
+      return;
+    }
+
+    //recv普通socket写法
+    read = recv(watcher->fd, buffer, BUFFER_SIZE, 0);
+    if(read < 0)
+    {
         if (104 == errno)
         {
-            PRINTF(LEVEL_DEBUG, "close %d:%d.\n", watcher->fd, ((struct ev_io *)watcher->data)->fd);  
+            PRINTF(LEVEL_DEBUG, "close %d:%d.\n", watcher->fd, ((struct ev_io *)watcher->data)->fd);
             ev_io_stop(loop, watcher);
             ev_io_stop(loop, watcher->data);
             close(watcher->fd);
@@ -468,17 +467,17 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
     //        ev_break(loop, EVBREAK_ONE);
             free(watcher->data);
             free(watcher);
-            return; 
+            return;
         }
 
-        PRINTF(LEVEL_ERROR, "read error [%d].\n", errno);  
+        PRINTF(LEVEL_ERROR, "read error [%d].\n", errno);
         return;
     }
-      
-    //断开链接的处理,停掉evnet就可以,同时记得释放客户端的结构体!  
-    if(read == 0)  
-    {  
-        PRINTF(LEVEL_DEBUG, "close %d:%d.\n", watcher->fd, ((struct ev_io *)watcher->data)->fd);  
+
+    //断开链接的处理,停掉evnet就可以,同时记得释放客户端的结构体!
+    if(read == 0)
+    {
+        PRINTF(LEVEL_DEBUG, "close %d:%d.\n", watcher->fd, ((struct ev_io *)watcher->data)->fd);
         ev_io_stop(loop, watcher);
         ev_io_stop(loop, watcher->data);
         close(watcher->fd);
@@ -487,12 +486,12 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 //        ev_break(loop, EVBREAK_ONE);
         free(watcher->data);
         free(watcher);
-        return;  
-    }  
-    else  
-    {  
+        return;
+    }
+    else
+    {
         send(((struct ev_io *)watcher->data)->fd, buffer, read, 0);
     }
 
-    return; 
-}  
+    return;
+}

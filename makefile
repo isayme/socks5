@@ -10,7 +10,7 @@
 BINS := socks5
 
 # libs to be created
-LIBS := liblog.so libdaemon.so libthread.so libconfig.so
+LIBS := liblog.so
 #-----------------------------------------------------------
 
 # compiler tool
@@ -24,9 +24,8 @@ CXXFLAGS := $(CFLAGS)
 SOFLAGS := -g -DLINUX -shared -fPIC -Iinc
 
 LDFLAGS := -Wl,-rpath,bin,-rpath, \
-  -Lbin \
-	-lpthread -llog -ldaemon -lconfig -lev -lthread
-	
+  -Lbin -lpthread -llog
+
 # vpath indicate the searching path of the according file type
 SRCDIR := src $(shell ls -d src/*)
 vpath %.c $(SRCDIR)
@@ -48,9 +47,9 @@ clean :
 	rm -f $(LIBS);\
 	rm -f $(BINS);\
 	cd ..;
-		
-		
-# common rules goes here, if the compiling procedure of your module matches one, 
+
+
+# common rules goes here, if the compiling procedure of your module matches one,
 # no need to list it in SpecialRules
 %.so : %.c
 	$(CC) $^ $(SOFLAGS) -o $@
@@ -59,7 +58,7 @@ clean :
 % : %.c
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 	mv $@ bin/
-		
+
 #-----------------------------------------------------------
 # for special libs/bins, add some lines like below
 #-----------------------------------------------------------

@@ -9,6 +9,7 @@
 #define GOTO_ERR do { PRINTF(LEVEL_ERROR, "go to error [%d].\n", errno); goto _err; } while (0)
 
 typedef void (*libev_cb)(EV_P_ struct type *w, int revents);
+
 #pragma pack(1)
 
 #define SOCKS5_STATE_PREPARE 0
