@@ -59,7 +59,6 @@ int main(int argc, char **argv) {
 
     g_loop = ev_default_loop(0);
 
-    // 初始化,这里监听了io事件,写法参考官方文档的
     ev_io_init(&g_io_accept, accept_cb, g_cfg.fd, EV_READ);
     ev_io_start(g_loop, &g_io_accept);
 
@@ -328,11 +327,9 @@ static int32_t socks5_auth(int sockfd)
     if ((remote = socket(AF_INET, SOCK_STREAM, 0)) < 0) GOTO_ERR;
     socks5_sockset(remote);
 
-    if (0 > connect(remote, (struct sockaddr *)&addr, sizeof(addr)))// GOTO_ERR;
-    {
+    if (0 > connect(remote, (struct sockaddr *)&addr, sizeof(addr))) {
         PRINTF(LEVEL_ERROR, "connect error.\n");
 
-        // connect error
         memcpy(buff, "\x05\x05\x00\x01\x00\x00\x00\x00\x00\x00", 10);
         send(sockfd, buff, 4, 0);
 
@@ -355,22 +352,20 @@ _err:
     return -1;
 }
 
-static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
-{
+static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
+
     int client_fd = 0;
     int remote_fd;
 
-    //libev的错误处理
-    if(EV_ERROR & revents) {
+    if (EV_ERROR & revents) {
         PRINTF(LEVEL_ERROR, "error event in accept.\n");
         return;
     }
 
-    //分派客户端的ev io结构
-    struct ev_io *w_client = (struct ev_io*) malloc (sizeof(struct ev_io));
-    struct ev_io *w_serv = (struct ev_io*) malloc (sizeof(struct ev_io));
+    struct ev_io *w_client = (struct ev_io*)malloc(sizeof(struct ev_io));
+    struct ev_io *w_serv = (struct ev_io*)malloc(sizeof(struct ev_io));
     if (NULL == w_client || NULL == w_serv) {
         PRINTF(LEVEL_ERROR, "apply memory error.\n");
 
@@ -379,7 +374,6 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
         return;
     }
 
-    //accept,普通写法
     client_fd = accept(watcher->fd, (struct sockaddr *)&client_addr, &client_len);
     if (client_fd < 0) {
         free(w_client);
@@ -406,48 +400,37 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
     return;
 }
 
-static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
-{
+static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents) {
     char buffer[BUFFER_SIZE];
     ssize_t read;
 
-    if(EV_ERROR & revents) {
+    if (EV_ERROR & revents) {
       PRINTF(LEVEL_ERROR, "error event in read.\n");
       return;
     }
 
-    //recv普通socket写法
     read = recv(watcher->fd, buffer, BUFFER_SIZE, 0);
     if (read < 0) {
+        PRINTF(LEVEL_ERROR, "read error [%d].\n", errno);
+
         if (104 == errno) {
             PRINTF(LEVEL_DEBUG, "close %d:%d.\n", watcher->fd, ((struct ev_io *)watcher->data)->fd);
             ev_io_stop(loop, watcher);
             ev_io_stop(loop, watcher->data);
             close(watcher->fd);
             close(((struct ev_io *)watcher->data)->fd);
-     //       ev_break(loop, EVBREAK_ONE);
-    //        ev_break(loop, EVBREAK_ONE);
             free(watcher->data);
             free(watcher);
             return;
         }
-
-        PRINTF(LEVEL_ERROR, "read error [%d].\n", errno);
-        return;
-    }
-
-    //断开链接的处理,停掉evnet就可以,同时记得释放客户端的结构体!
-    if(read == 0) {
+    } else if (0 == read) {
         PRINTF(LEVEL_DEBUG, "close %d:%d.\n", watcher->fd, ((struct ev_io *)watcher->data)->fd);
         ev_io_stop(loop, watcher);
         ev_io_stop(loop, watcher->data);
         close(watcher->fd);
         close(((struct ev_io *)watcher->data)->fd);
- //       ev_break(loop, EVBREAK_ONE);
-//        ev_break(loop, EVBREAK_ONE);
         free(watcher->data);
         free(watcher);
-        return;
     } else {
         send(((struct ev_io *)watcher->data)->fd, buffer, read, 0);
     }
