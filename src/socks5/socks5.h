@@ -59,7 +59,7 @@ typedef struct {
     uint8_t ver;
     uint8_t cmd;
     uint8_t rsv;
-    uint8_t atype;
+    uint8_t addrtype;
 } socks5_request_t;
 
 // socks5 response status

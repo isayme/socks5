@@ -283,7 +283,7 @@ static int32_t socks5_auth(int sockfd) {
         goto _err;
     }
 
-    if (SOSKC5_ADDRTYPE_IPV4 == ((socks5_request_t *)buff)->atype) {
+    if (SOSKC5_ADDRTYPE_IPV4 == ((socks5_request_t *)buff)->addrtype) {
         bzero((char *)&addr, sizeof(addr));
         addr.sin_family = AF_INET;
 
@@ -293,7 +293,7 @@ static int32_t socks5_auth(int sockfd) {
         memcpy(&(addr.sin_port), buff, 2);
 
         PRINTF(LEVEL_DEBUG, "type : IP, %s:%d.\n", inet_ntoa(addr.sin_addr), htons(addr.sin_port));
-    } else if (SOSKC5_ADDRTYPE_DOMAIN == ((socks5_request_t *)buff)->atype) {
+    } else if (SOSKC5_ADDRTYPE_DOMAIN == ((socks5_request_t *)buff)->addrtype) {
         struct hostent *hptr;
 
         bzero((char *)&addr, sizeof(addr));
