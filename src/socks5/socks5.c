@@ -247,8 +247,7 @@ static int32_t socks5_sockset(int sockfd) {
     return 0;
 }
 
-static int32_t socks5_auth(int sockfd)
-{
+static int32_t socks5_auth(int sockfd) {
     int remote = 0;
     char buff[BUFFER_SIZE];
     struct sockaddr_in addr;
@@ -269,14 +268,14 @@ static int32_t socks5_auth(int sockfd)
 
     // REQUEST and REPLY
     if (-1 == recv(sockfd, buff, 4, 0)) GOTO_ERR;
-    //if (0x05 != buff[0] || 0x01 != buff[1]) //GOTO_ERR;
+
     if (SOCKS5_VERSION != ((socks5_request_t *)buff)->ver
         || SOCKS5_CMD_CONNECT != ((socks5_request_t *)buff)->cmd) {
         PRINTF(LEVEL_DEBUG, "ver : %d\tcmd = %d.\n", \
             ((socks5_request_t *)buff)->ver, ((socks5_request_t *)buff)->cmd);
 
         ((socks5_response_t *)buff)->ver = SOCKS5_VERSION;
-        ((socks5_response_t *)buff)->cmd = SOCKS5_CMD_NOT_SUPPORTED;
+        ((socks5_response_t *)buff)->cmd = SOCKS5_RESPONSE_COMMAND_NOT_SUPPORTED;
         ((socks5_response_t *)buff)->rsv = 0;
 
         // cmd not supported
@@ -284,7 +283,7 @@ static int32_t socks5_auth(int sockfd)
         goto _err;
     }
 
-    if (SOCKS5_IPV4 == ((socks5_request_t *)buff)->atype) {
+    if (SOSKC5_ADDRTYPE_IPV4 == ((socks5_request_t *)buff)->atype) {
         bzero((char *)&addr, sizeof(addr));
         addr.sin_family = AF_INET;
 
@@ -294,7 +293,7 @@ static int32_t socks5_auth(int sockfd)
         memcpy(&(addr.sin_port), buff, 2);
 
         PRINTF(LEVEL_DEBUG, "type : IP, %s:%d.\n", inet_ntoa(addr.sin_addr), htons(addr.sin_port));
-    } else if (SOCKS5_DOMAIN == ((socks5_request_t *)buff)->atype) {
+    } else if (SOSKC5_ADDRTYPE_DOMAIN == ((socks5_request_t *)buff)->atype) {
         struct hostent *hptr;
 
         bzero((char *)&addr, sizeof(addr));
@@ -316,7 +315,7 @@ static int32_t socks5_auth(int sockfd)
         memcpy(&(addr.sin_port), buff, 2);
     } else {
         ((socks5_response_t *)buff)->ver = SOCKS5_VERSION;
-        ((socks5_response_t *)buff)->cmd = SOCKS5_ADDR_NOT_SUPPORTED;
+        ((socks5_response_t *)buff)->cmd = SOCKS5_RESPONSE_ADDRTYPE_NOT_SUPPORTED;
         ((socks5_response_t *)buff)->rsv = 0;
 
         // cmd not supported
