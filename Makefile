@@ -1,11 +1,11 @@
 CC := gcc
 
-CFLAGS := -g -Wall -O3 -DLINUX
+CFLAGS := -g -Wall -O3 -DLINUX -DDEBUG
 CXXFLAGS := $(CFLAGS)
 
 vpath %.c src
 
-SOURCES := main.c logger.c netutils.c
+SOURCES := main.c logger.c netutils.c ev.c
 
 ssserver: $(SOURCES)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -g -o $@
@@ -18,4 +18,4 @@ builddebian:
 	docker build -t debian:gcc .
 
 rundebian:
-	docker run -v $PWD:/app/ -it --rm debian:gcc bash
+	docker run --name ss -p 23456:23456 -v ${PWD}:/app/ -it --rm debian:gcc bash

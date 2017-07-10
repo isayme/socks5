@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
 
 #include "netutils.h"
 
@@ -18,6 +20,19 @@ int set_nonblocking(int fd) {
 int set_reuseaddr(int fd) {
     int opt = 1;
     return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt));
+}
+
+int set_nodelay(int fd) {
+    int opt = 1;
+    return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&opt, sizeof(opt));
+}
+
+int set_nosigpipe(int fd) {
+#ifdef SO_NOSIGPIPE
+    int opt = 1;
+    return setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
+    return 0;
 }
 
 // int set_nosigpipe(int fd) {
