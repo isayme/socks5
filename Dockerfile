@@ -3,7 +3,7 @@ FROM debian:latest
 RUN apt-get update
 RUN apt-get install build-essential -y
 RUN apt-get install gdb -y
-RUN apt-get install apt-get install procps -y
+RUN apt-get install procps -y
 
 RUN apt-get install tzdata
 ENV TZ=Asia/Shanghai
