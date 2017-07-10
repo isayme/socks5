@@ -12,7 +12,11 @@
  */
 static logger_ctx_t g_logger = {
     NULL,
+#ifdef DEBUG
+    LOGGER_LEVEL_DEBUG,
+#else
     LOGGER_LEVEL_INFO,
+#endif
     LOGGER_COLOR_ON
 };
 
