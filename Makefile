@@ -5,7 +5,7 @@ CXXFLAGS := $(CFLAGS)
 
 vpath %.c src
 
-SOURCES := main.c logger.c netutils.c ev.c
+SOURCES := main.c logger.c netutils.c ev.c buffer.c callback.c
 
 ssserver: $(SOURCES)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -g -o $@

@@ -8,9 +8,11 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+
 #include "logger.h"
 #include "netutils.h"
 #include "ev.h"
+#include "callback.h"
 
 #define EPOLL_SIZE 1024
 #define LISTEN_BACKLOG 128
@@ -75,68 +77,6 @@ int create_and_bind(uint16_t port, int32_t backlog) {
     }
 
     return sockfd;
-}
-
-void on_read(struct ev_loop *loop, struct ev_io *w, uint32_t events) {
-    int fd = w->fd;
-
-    size_t count;
-    char buf[512];
-
-    while (1) {
-        bzero(buf, 512);
-        count = read(fd, buf, sizeof(buf));
-        if (count == -1) {
-            /*
-                * if errno == EAGAIN, that means we have read all
-                * data. So go back to the main loop.
-                */
-            if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                logger_info("closed connection [%d], errno: [%d]\n", fd, errno);
-                ev_io_stop(loop, w);
-            }
-            break;
-        } else if (count == 0) {
-            /* End of file. The remote has closed the
-                connection. */
-            logger_info("remote closed connection [%d]\n", fd);
-            ev_io_stop(loop, w);
-            break;
-        } else {
-            logger_info("receive from [%d]: [%s]\n", fd, buf);
-        }
-    }
-}
-
-void accept_cb(struct ev_loop *loop, struct ev_io *w, uint32_t events) {
-    int fd = w->fd;
-
-    while (1) {
-        struct sockaddr_in client;
-        socklen_t len = sizeof(struct sockaddr);
-        int clientfd;
-
-        clientfd = accept(fd, (struct sockaddr *)&client, &len);
-        if (clientfd == -1) {
-            if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
-                logger_warn("accept error: [%d]\n", errno);
-            }
-            break;
-        }
-
-        if (set_nonblocking(clientfd) < 0) {
-            logger_error("set_nonblocking: [%d]\n", errno);
-            exit(EXIT_FAILURE);
-        }
-
-        struct ev_io *w = (struct ev_io *)malloc(sizeof(struct ev_io));
-        ev_io_init(w, clientfd, on_read, EV_READ);
-        ev_io_start(loop, w);
-
-        logger_info("accept connection [%d](host=%s, port=%d)\n", clientfd,
-            inet_ntoa(client.sin_addr),
-            ntohs(client.sin_port));
-    }
 }
 
 int main (int argc, char **argv) {
