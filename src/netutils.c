@@ -1,3 +1,4 @@
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -5,6 +6,50 @@
 #include <arpa/inet.h>
 
 #include "netutils.h"
+
+int create_v4_socket(char *host, char *port) {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (fd < 0) {
+        return -1;
+    }
+
+    if (set_nonblocking(fd) < 0) {
+        return -1;
+    }
+
+    if (set_reuseaddr(fd) < 0) {
+        return -1;
+    }
+
+    if (set_nosigpipe(fd) < 0) {
+        return -1;
+    }
+
+    return fd;
+}
+
+int create_v6_socket(char *host, char *port) {
+    int fd = socket(AF_INET6, SOCK_STREAM, 0);
+
+    if (fd < 0) {
+        return -1;
+    }
+
+    if (set_nonblocking(fd) < 0) {
+        return -1;
+    }
+
+    if (set_reuseaddr(fd) < 0) {
+        return -1;
+    }
+
+    if (set_nosigpipe(fd) < 0) {
+        return -1;
+    }
+
+    return fd;
+}
 
 int set_nonblocking(int fd) {
     int flags;

@@ -3,16 +3,22 @@ CC := gcc
 CFLAGS := -g -Wall -O3 -DLINUX -DDEBUG
 CXXFLAGS := $(CFLAGS)
 
+LDFLAGS := -Wl,-rpath,bin,-rpath, -L./ -Ideps/libev-4.24 -lev
+
 vpath %.c src
 
-SOURCES := main.c logger.c netutils.c ev.c buffer.c callback.c
+SOURCES := main.c logger.c netutils.c buffer.c callback.c socks5.c
 
-ssserver: $(SOURCES)
+ssserver: $(SOURCES) libev.so
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -g -o $@
-	mv $@ build/
+
+libev.so:
+	cd deps/libev-4.24 && ./configure && make
+	cp deps/libev-4.24/.libs/libev.so ./
 
 clean:
-	rm -rf build/*
+	rm -rf ssserver
+	rm -rf libev.*
 
 builddebian:
 	docker build -t debian:gcc .

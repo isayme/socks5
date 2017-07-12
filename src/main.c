@@ -5,13 +5,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
-#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <ev.h>
+
 #include "logger.h"
 #include "netutils.h"
-#include "ev.h"
 #include "callback.h"
 
 #define EPOLL_SIZE 1024
@@ -19,15 +19,12 @@
 #define MAX_EVENTS_COUNT 128
 #define LISTEN_PORT 23456
 
-static bool g_run = true;
-
 static void signal_handler(int sig) {
     logger_info("receive signal: [%d]\n", sig);
 
     switch (sig) {
         case SIGINT:
         case SIGTERM:
-            g_run = false;
             break;
         default:
             logger_warn("unkown signal [%d]\n", sig);
@@ -58,7 +55,7 @@ int create_and_bind(uint16_t port, int32_t backlog) {
     }
 
     struct sockaddr_in servaddr;
-    bzero((char *)&servaddr, sizeof(servaddr));
+    memset((char *)&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_port = htons(port);
@@ -87,14 +84,15 @@ int main (int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    struct ev_loop *loop = ev_default_loop();
+    struct ev_loop *loop = ev_default_loop(0);
     struct ev_io server;
 
     server.fd = create_and_bind(LISTEN_PORT, LISTEN_BACKLOG);
-    ev_io_init(&server, server.fd, accept_cb, EV_READ);
+
+    ev_io_init(&server, accept_cb, server.fd, EV_READ);
     ev_io_start(loop, &server);
 
-    ev_run(loop);
+    ev_run(loop, 0);
 
     logger_info("exiting ...\n");
     ev_loop_destroy(loop);

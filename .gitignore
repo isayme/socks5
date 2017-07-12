@@ -51,5 +51,6 @@ Module.symvers
 Mkfile.old
 dkms.conf
 .vscode
-build
 test/debug
+ssserver
+libev.a
