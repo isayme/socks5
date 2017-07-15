@@ -8,6 +8,7 @@
 #include "callback.h"
 #include "logger.h"
 #include "netutils.h"
+#include "resolve.h"
 #include "socks5.h"
 
 void accept_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
@@ -42,6 +43,8 @@ void accept_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             goto _close_conn;
         }
 
+        conn->loop = loop;
+        conn->client.fd = clientfd;
         ev_io_init(conn->client.rw, client_recv_cb, clientfd, EV_READ);
         ev_io_init(conn->client.ww, client_send_cb, clientfd, EV_WRITE);
         // start receive handleshake
@@ -60,6 +63,64 @@ _close_conn:
             close(clientfd);
         }
     }
+}
+
+void dns_resolve_cb(struct sockaddr_in addr, struct resolve_query_t *query) {
+    struct socks5_conn *conn = (struct socks5_conn *)query->data;
+    struct socks5_remote_conn *remote = &conn->remote;
+
+    unsigned short sin_port = remote->addr.sin_port;
+    memcpy(&remote->addr, &addr, sizeof(struct in_addr));
+    addr.sin_port = sin_port;
+
+    connect_to_remote(conn, addr);
+}
+
+int connect_to_remote(struct socks5_conn *conn, struct sockaddr_in addr) {
+    struct ev_io *loop = conn->loop;
+    struct socks5_client_conn *client = &conn->client;
+    struct socks5_remote_conn *remote = &conn->remote;
+
+    struct socks5_response reply = {
+        SOCKS5_VERSION,
+        SOCKS5_RESPONSE_SUCCESS,
+        SOCKS5_RSV,
+        SOCKS5_ADDRTYPE_IPV4
+    };
+
+    int fd = create_v4_socket();
+    if (fd < 0) {
+        logger_debug("create_v4_socket fail, errno: [%d]\n", errno);
+        goto _err;
+    }
+
+    remote->fd = fd;
+    logger_info("connect to remote host=%s, port=%d\n",
+            inet_ntoa(addr.sin_addr),
+            ntohs(addr.sin_port));
+    if (connect(remote->fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) < 0) {
+        if (EINPROGRESS != errno) {
+            logger_debug("connect fail, errno: [%d]\n", errno);
+            goto _err;
+        }
+    }
+
+    // buffer_concat(conn->client.output, (char *)&reply, sizeof(reply));
+    socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
+    ev_io_init(remote->rw, remote_recv_cb, remote->fd, EV_READ);
+    ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
+    ev_io_start(loop, remote->ww);
+
+    return fd;
+_err:
+    if (fd > 0) {
+        close(fd);
+    }
+    reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
+    buffer_concat(conn->client.output, (char *)&reply, sizeof(reply));
+    socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CLOSING);
+    ev_io_start(loop, client->ww);
+    return -1;
 }
 
 void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
@@ -216,54 +277,65 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                     break;
                 }
                 case SOCKS5_ADDRTYPE_DOMAIN: {
-                    // domain length
+                    // hostname length
                     if (client->input->used < (sizeof(struct socks5_request) + 1)) {
                         logger_debug("wait more data\n");
                         return;
                     }
-                    int domain_len = *(client->input->data + sizeof(struct socks5_request));
-                    if (client->input->used < (sizeof(struct socks5_request) + 1 + domain_len)) {
+                    int hostname_len = *(client->input->data + sizeof(struct socks5_request));
+                    if (client->input->used < (sizeof(struct socks5_request) + 1 + hostname_len)) {
                         logger_debug("wait more data\n");
                         return;
                     }
-                    char domain[512];
-                    memset(domain, 0, sizeof(domain));
-                    memcpy(domain, client->input->data + sizeof(struct socks5_request) + 1, domain_len);
-                    logger_info("remote domain: [%s]\n", domain);
 
-                    struct hostent *hptr;
-                    struct sockaddr_in addr;
-                    memset((char *)&addr, 0, sizeof(addr));
-                    addr.sin_family = AF_INET;
+                    buffer_concat(remote->bndaddr, client->input->data + sizeof(struct socks5_request), hostname_len + 3);
 
-                    hptr = gethostbyname(domain);
-                    if (NULL == hptr || AF_INET != hptr->h_addrtype || NULL == *(hptr->h_addr_list)) {
-                        logger_error("gethostbyname fail, errno: [%d]\n", errno);
-                        reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
-                        goto _response_fail;
-                    }
+                    char hostname[512];
+                    memset(hostname, 0, sizeof(hostname));
+                    memcpy(hostname, client->input->data + sizeof(struct socks5_request) + 1, hostname_len);
 
-                    memcpy(&(addr.sin_addr.s_addr), *(hptr->h_addr_list), 4);
-                    char *port = client->input->data + sizeof(struct socks5_request) + 1 + domain_len;
-                    memcpy(&(addr.sin_port), port, 2);
+                    char *port = client->input->data + sizeof(struct socks5_request) + 1 + hostname_len;
+                    memcpy(&remote->addr.sin_port, port, 2);
 
-                    int remotefd = create_v4_socket();
-                    if (remotefd < 0) {
-                        logger_error("create_v4_socket fail, errno: [%d]\n", errno);
-                        reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
-                        goto _response_fail;
-                    }
+                    logger_info("remote hostname: [%s:%d]\n", hostname, ntohs(remote->addr.sin_port));
 
-                    if (connect(remotefd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-                        if (EINPROGRESS != errno) {
-                            logger_error("connect fail, errno: [%d]\n", errno);
+                    struct sockaddr addr;
+                    if (strtosockaddr(hostname, (void *)&addr) > 0) {
+                        int remotefd;
+                        if (addr.sa_family == AF_INET) {
+                            remotefd = create_v4_socket();
+                            remote->addrtype = SOCKS5_ADDRTYPE_IPV4;
+                            ((struct sockaddr_in *)&addr)->sin_port = remote->addr.sin_port;
+                            buffer_concat(remote->bndaddr, client->input->data + sizeof(struct socks5_request), 6);
+                        } else if (addr.sa_family == AF_INET6) {
+                            remotefd = create_v6_socket();
+                            remote->addrtype = SOCKS5_ADDRTYPE_IPV6;
+                            ((struct sockaddr_in6 *)&addr)->sin6_port = remote->addr.sin_port;
+                            buffer_concat(remote->bndaddr, client->input->data + sizeof(struct socks5_request), 18);
+                        }
+
+                        if (connect(remotefd, &addr, sizeof(addr)) < 0) {
+                            if (EINPROGRESS != errno) {
+                                logger_error("connect fail, errno: [%d]\n", errno);
+                                reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
+                                goto _response_fail;
+                            }
+                        }
+                        remote->fd = remotefd;
+                        break;
+                    } else {
+                        remote->query = resolve_query(hostname, dns_resolve_cb, conn);
+                        if (NULL == remote->query) {
+                            logger_error("resolve_query fail\n");
                             reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
                             goto _response_fail;
                         }
+
+                        socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_DNSQUERY);
+                        buffer_reset(client->input);
+                        ev_io_stop(loop, w);
+                        return;
                     }
-                    remote->fd = remotefd;
-                    buffer_concat(remote->bndaddr, client->input->data + sizeof(struct socks5_request), domain_len + 3);
-                    break;
                 }
                 case SOCKS5_ADDRTYPE_IPV6: {
                     if (client->input->used < (sizeof(struct socks5_request) + 18)) {
@@ -304,18 +376,18 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                     goto _response_fail;
             }
 
-            socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
-            buffer_reset(client->input);
             ev_io_stop(loop, w);
-            ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
+            buffer_reset(client->input);
+            socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
             ev_io_init(remote->rw, remote_recv_cb, remote->fd, EV_READ);
+            ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
             ev_io_start(loop, remote->ww);
-
             break;
         _response_fail:
-            buffer_concat(conn->client.output, (char *)&reply, sizeof(reply));
-            socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CLOSING);
             ev_io_stop(loop, w);
+            buffer_reset(client->input);
+            socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CLOSING);
+            buffer_concat(conn->client.output, (char *)&reply, sizeof(reply));
             ev_io_start(loop, client->ww);
             break;
         }
@@ -336,10 +408,6 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     return;
 _close_conn:
     logger_debug("client_recv_cb close conn, fd: [%d], stage: [%d]\n", fd, conn->stage);
-    ev_io_stop(loop, client->rw);
-    ev_io_stop(loop, client->ww);
-    ev_io_stop(loop, remote->rw);
-    ev_io_stop(loop, remote->ww);
     socks5_conn_close(conn);
 }
 
@@ -407,10 +475,6 @@ void client_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
 
 _close_conn:
     logger_debug("client_send_cb close conn, fd: [%d], stage: [%d]\n", fd, conn->stage);
-    ev_io_stop(loop, client->rw);
-    ev_io_stop(loop, client->ww);
-    ev_io_stop(loop, remote->rw);
-    ev_io_stop(loop, remote->ww);
     socks5_conn_close(conn);
 }
 
@@ -454,10 +518,6 @@ void remote_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
 
 _close_conn:
     logger_debug("remote_recv_cb close conn, fd: [%d], stage: [%d]\n", fd, conn->stage);
-    ev_io_stop(loop, client->rw);
-    ev_io_stop(loop, client->ww);
-    ev_io_stop(loop, remote->rw);
-    ev_io_stop(loop, remote->ww);
     socks5_conn_close(conn);
 }
 
@@ -532,9 +592,5 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     return;
 _close_conn:
     logger_debug("remote_send_cb close conn, fd: [%d], stage: [%d]\n", fd, conn->stage);
-    ev_io_stop(loop, client->rw);
-    ev_io_stop(loop, client->ww);
-    ev_io_stop(loop, remote->rw);
-    ev_io_stop(loop, remote->ww);
     socks5_conn_close(conn);
 }

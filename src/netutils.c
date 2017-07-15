@@ -7,7 +7,7 @@
 
 #include "netutils.h"
 
-int create_v4_socket(char *host, char *port) {
+int create_v4_socket() {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (fd < 0) {
@@ -29,7 +29,7 @@ int create_v4_socket(char *host, char *port) {
     return fd;
 }
 
-int create_v6_socket(char *host, char *port) {
+int create_v6_socket() {
     int fd = socket(AF_INET6, SOCK_STREAM, 0);
 
     if (fd < 0) {
@@ -75,7 +75,7 @@ int set_nodelay(int fd) {
 int set_nosigpipe(int fd) {
 #ifdef SO_NOSIGPIPE
     int opt = 1;
-    return setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+    return setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&opt, sizeof(opt));
 #endif
     return 0;
 }
@@ -84,3 +84,15 @@ int set_nosigpipe(int fd) {
 //     int opt = 1;
 //     return setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&opt, sizeof(opt));
 // }
+
+int strtosockaddr(const char *src, void *addrptr) {
+    int ret;
+
+    ret = inet_pton(AF_INET, src, addrptr);
+    if (0 < ret) {
+        return ret;
+    }
+
+    ret = inet_pton(AF_INET6, src, addrptr);
+    return ret;
+}

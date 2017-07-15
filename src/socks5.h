@@ -2,8 +2,10 @@
 #define SOCKS5_H
 
 #include <stdint.h>
+#include <netinet/in.h>
 #include <ev.h>
 #include "buffer.h"
+#include "resolve.h"
 
 #pragma pack(1)
 
@@ -76,6 +78,8 @@ struct socks5_client_conn {
 
 struct socks5_remote_conn {
     int fd;
+    struct sockaddr_in addr;
+    struct resolve_query_t *query;
     struct ev_io *rw;   // read watcher
     struct ev_io *ww;   // write watcher
     buffer_t *input;
@@ -98,6 +102,7 @@ struct socks5_conn {
 #define SOCKS5_CONN_STAGE_CLOSED            9
     uint8_t stage;
     uint8_t method;
+    struct ev_loop *loop;
 };
 
 struct socks5_conn *socks5_conn_new();

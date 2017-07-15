@@ -1,24 +1,29 @@
 CC := gcc
 
-CFLAGS := -g -Wall -O3 -DLINUX -DDEBUG
+CFLAGS := -g -Wall -O3 -DLINUX
 CXXFLAGS := $(CFLAGS)
 
-LDFLAGS := -Wl,-rpath,bin,-rpath, -L./ -Ideps/libev-4.24 -lev
+LDFLAGS := -Wl,-rpath,bin,-rpath, -lm -L./ -Ideps/libev-4.24 -lev -Ideps/udns-0.4 -ludns
 
 vpath %.c src
 
-SOURCES := main.c logger.c netutils.c buffer.c callback.c socks5.c
+SOURCES := main.c logger.c netutils.c buffer.c callback.c socks5.c resolve.c
 
-ssserver: $(SOURCES) libev.so
+ssserver: $(SOURCES) libev.a libudns.a
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -g -o $@
 
-libev.so:
+libev.a:
 	cd deps/libev-4.24 && ./configure && make
-	cp deps/libev-4.24/.libs/libev.so ./
+	cp deps/libev-4.24/.libs/libev.a ./
+
+libudns.a:
+	cd deps/udns-0.4 && ./configure && make
+	cp deps/udns-0.4/libudns.a ./
 
 clean:
 	rm -rf ssserver
 	rm -rf libev.*
+	rm -rf libudns.*
 
 builddebian:
 	docker build -t debian:gcc .

@@ -12,6 +12,7 @@
 
 #include "logger.h"
 #include "netutils.h"
+#include "resolve.h"
 #include "callback.h"
 
 #define EPOLL_SIZE 1024
@@ -79,13 +80,15 @@ int create_and_bind(uint16_t port, int32_t backlog) {
 int main (int argc, char **argv) {
     logger_info("starting ...\n");
 
-    if (register_signals() < 0) {
-        logger_error("register_signals fail\n");
-        exit(EXIT_FAILURE);
-    }
-
     struct ev_loop *loop = ev_default_loop(0);
     struct ev_io server;
+
+    if (resolve_init(loop, NULL, 0) < 0) {
+        logger_error("resolve_init fail\n");
+        exit(EXIT_FAILURE);
+    } else {
+        logger_info("resolve_init ok\n");
+    }
 
     server.fd = create_and_bind(LISTEN_PORT, LISTEN_BACKLOG);
 
@@ -95,6 +98,8 @@ int main (int argc, char **argv) {
     ev_run(loop, 0);
 
     logger_info("exiting ...\n");
+
+    resolve_shutdown(loop);
     ev_loop_destroy(loop);
 
     return EXIT_SUCCESS;

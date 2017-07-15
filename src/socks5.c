@@ -67,7 +67,14 @@ _clean:
 }
 
 void socks5_conn_close(struct socks5_conn *conn) {
+    struct ev_loop *loop = conn->loop;
+
     conn->stage = SOCKS5_CONN_STAGE_CLOSED;
+
+    if (conn->client.fd) ev_io_stop(loop, conn->client.rw);
+    if (conn->client.fd) ev_io_stop(loop, conn->client.ww);
+    if (conn->remote.fd) ev_io_stop(loop, conn->remote.rw);
+    if (conn->remote.fd) ev_io_stop(loop, conn->remote.ww);
 
     if (conn->client.input) {
         buffer_free(conn->client.input);

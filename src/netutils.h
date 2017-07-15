@@ -10,4 +10,6 @@ int set_nosigpipe(int fd);
 // int set_linger(int fd);
 // int set_nosigpipe(int fd);
 
+int strtosockaddr(const char *src, void *addrptr);
+
 #endif
