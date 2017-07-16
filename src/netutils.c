@@ -7,30 +7,8 @@
 
 #include "netutils.h"
 
-int create_v4_socket() {
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (fd < 0) {
-        return -1;
-    }
-
-    if (set_nonblocking(fd) < 0) {
-        return -1;
-    }
-
-    if (set_reuseaddr(fd) < 0) {
-        return -1;
-    }
-
-    if (set_nosigpipe(fd) < 0) {
-        return -1;
-    }
-
-    return fd;
-}
-
-int create_v6_socket() {
-    int fd = socket(AF_INET6, SOCK_STREAM, 0);
+int create_socket(int af) {
+    int fd = socket(af, SOCK_STREAM, 0);
 
     if (fd < 0) {
         return -1;

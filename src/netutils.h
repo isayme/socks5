@@ -1,8 +1,7 @@
 #ifndef NETUTILS_H
 #define NETUTILS_H
 
-int create_v4_socket();
-int create_v6_socket();
+int create_socket();
 int set_nonblocking(int fd);
 int set_reuseaddr(int fd);
 int set_nodelay(int fd);

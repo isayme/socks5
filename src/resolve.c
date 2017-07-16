@@ -116,11 +116,13 @@ static void dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void 
     }
 
     if (result->dnsa4_nrr > 0) {
-        struct sockaddr_in addr;
-        addr.sin_family = AF_INET;
-        addr.sin_addr = result->dnsa4_addr[0];
+        struct sockaddr_storage storage;
+        storage.ss_family = AF_INET;
 
-        query->cb(addr, query);
+        struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
+        addr->sin_addr = result->dnsa4_addr[0];
+
+        query->cb(storage, query);
     }
 
     free(result);

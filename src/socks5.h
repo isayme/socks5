@@ -78,6 +78,8 @@ struct socks5_client_conn {
 
 struct socks5_remote_conn {
     int fd;
+    char hostname[DNS_MAXNAME];
+    uint16_t port;
     struct sockaddr_in addr;
     struct resolve_query_t *query;
     struct ev_io *rw;   // read watcher
