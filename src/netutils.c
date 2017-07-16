@@ -88,11 +88,25 @@ int set_nosigpipe(int fd) {
 int strtosockaddr(const char *src, void *addrptr) {
     int ret;
 
-    ret = inet_pton(AF_INET, src, addrptr);
-    if (0 < ret) {
+    struct sockaddr_storage *storage = (struct sockaddr_storage *)addrptr;
+
+    struct sockaddr_in addr4;
+    ret = inet_pton(AF_INET, src, &(addr4.sin_addr));
+    if (ret > 0) {
+        storage->ss_family = AF_INET;
+        struct sockaddr_in *addr = (struct sockaddr_in *)addrptr;
+        memcpy(&addr->sin_addr, &addr4.sin_addr, sizeof(addr4.sin_addr));
         return ret;
     }
 
-    ret = inet_pton(AF_INET6, src, addrptr);
-    return ret;
+    struct sockaddr_in6 addr6;
+    ret = inet_pton(AF_INET6, src, &(addr6.sin6_addr));
+    if (ret > 0) {
+        storage->ss_family = AF_INET6;
+        struct sockaddr_in6 *addr = (struct sockaddr_in6 *)addrptr;
+        memcpy(&addr->sin6_addr, &addr6.sin6_addr, sizeof(addr4.sin_addr));
+        return ret;
+    }
+
+    return -1;
 }
