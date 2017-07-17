@@ -110,7 +110,12 @@ int connect_to_remote(struct socks5_conn *conn, struct sockaddr_storage *storage
         goto _err;
     }
 
-    logger_info("connect to remote host=%s, port=%d\n", ipaddr, remote->port);
+    if ('\0' == remote->hostname[0]) {
+        memcpy(remote->hostname, ipaddr, sizeof(ipaddr));
+        logger_info("connecting to remote host=%s, port=%d\n", remote->hostname, remote->port);
+    } else {
+        logger_info("connecting to remote host=%s(%s), port=%d\n", remote->hostname, ipaddr, remote->port);
+    }
 
     if (connect(remote->fd, (struct sockaddr *)storage, address_len) < 0) {
         if (EINPROGRESS != errno) {
@@ -286,7 +291,6 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
 
                     buffer_concat(remote->bndaddr, (char *)&addr->sin_addr.s_addr, 4);
                     buffer_concat(remote->bndaddr, (char *)&addr->sin_port, 2);
-                    // buffer_concat(remote->bndaddr, client->input->data + sizeof(struct socks5_request), 6);
                     break;
                 }
                 case SOCKS5_ADDRTYPE_DOMAIN: {
@@ -358,7 +362,6 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
 
                     buffer_concat(remote->bndaddr, (char *)&addr->sin6_addr, 16);
                     buffer_concat(remote->bndaddr, (char *)&addr->sin6_port, 2);
-                    // buffer_concat(remote->bndaddr, client->input->data + sizeof(struct socks5_request), 18);
                     break;
                 }
                 default:
@@ -533,10 +536,10 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
         reply.addrtype = remote->addrtype;
         int remotefd = fd;
 
-        struct sockaddr_in addr;
-        socklen_t len = sizeof(addr);
-        if (getpeername(remotefd, (struct sockaddr *)&addr, &len) < 0) {
-            logger_warn("getpeername fail, errno: [%d]\n", errno);
+        struct sockaddr_storage storage;
+        socklen_t len = sizeof(storage);
+        if (getpeername(remotefd, (struct sockaddr *)&storage, &len) < 0) {
+            logger_warn("getpeername(%s:%d) fail, errno: [%d]\n", remote->hostname, remote->port, errno);
             // something wrong
             reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
             buffer_concat(client->output, (char *)&reply, sizeof(reply));
@@ -546,9 +549,7 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTED);
             buffer_concat(client->output, (char *)&reply, sizeof(reply));
             buffer_concat(client->output, remote->bndaddr->data, remote->bndaddr->used);
-            logger_info("remote connected [%d](host=%s, port=%d)\n", remotefd,
-                inet_ntoa(addr.sin_addr),
-                ntohs(addr.sin_port));
+            logger_info("remote connected host=%s, port=%d\n", remote->hostname, remote->port);
         }
 
         // notify client connect result
