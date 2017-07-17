@@ -139,20 +139,30 @@ _err:
     if (fd > 0) {
         close(fd);
     }
-    buffer_concat(conn->client.output, (char *)&reply, sizeof(reply));
-    socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CLOSING);
-    ev_io_start(loop, client->ww);
+
     return -1;
 }
 
-void dns_resolve_cb(struct sockaddr_storage storage, struct resolve_query_t *query) {
+void dns_resolve_cb(struct sockaddr_storage *storage, struct resolve_query_t *query) {
     struct socks5_conn *conn = (struct socks5_conn *)query->data;
     struct ev_loop *loop = conn->loop;
     struct socks5_remote_conn *remote = &conn->remote;
+    struct socks5_client_conn *client = &conn->client;
 
-    if (connect_to_remote(conn, &storage) < 0) {
+    struct socks5_response reply = {
+        SOCKS5_VERSION,
+        SOCKS5_RESPONSE_SERVER_FAILURE,
+        SOCKS5_RSV,
+        SOCKS5_ADDRTYPE_IPV4
+    };
+
+    if (NULL == storage) {
+        goto _err;
+    }
+
+    if (connect_to_remote(conn, storage) < 0) {
         logger_error("connect_to_remote fail, errno [%d]\n", errno);
-        return;
+        goto _err;
     }
 
     socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
@@ -160,6 +170,11 @@ void dns_resolve_cb(struct sockaddr_storage storage, struct resolve_query_t *que
     ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
     ev_io_start(loop, remote->ww);
     return;
+
+_err:
+    buffer_concat(client->output, (char *)&reply, sizeof(reply));
+    socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CLOSING);
+    ev_io_start(loop, client->ww);
 }
 
 void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {

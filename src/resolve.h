@@ -6,7 +6,7 @@
 
 struct resolve_query_t;
 
-typedef void resolve_cb(struct sockaddr_storage storage, struct resolve_query_t *query);
+typedef void resolve_cb(struct sockaddr_storage *storage, struct resolve_query_t *query);
 struct resolve_query_t {
     struct dns_query *q;
     resolve_cb *cb;

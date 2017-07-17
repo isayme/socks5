@@ -113,6 +113,7 @@ static void dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void 
 
     if (NULL == result) {
         logger_error("dns_query_v4_cb result is NULL\n");
+        query->cb(NULL, query);
         return;
     }
 
@@ -123,7 +124,7 @@ static void dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void 
         struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
         addr->sin_addr = result->dnsa4_addr[0];
 
-        query->cb(storage, query);
+        query->cb(&storage, query);
     }
 
     free(result);
