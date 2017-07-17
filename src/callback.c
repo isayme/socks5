@@ -433,21 +433,30 @@ void client_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     ssize_t size;
 
     while (1) {
-        if ((client->output->used - idx) <= 0) {
+        size_t remain = client->output->used - idx;
+        if (remain <= 0) {
             // all data send, stop
             buffer_reset(client->output);
             ev_io_stop(loop, w);
             break;
         }
 
-        size = write(fd, client->output->data + idx, client->output->used - idx);
+        size = write(fd, client->output->data + idx, remain);
         if (size < 0) {
             if (EAGAIN != errno && EWOULDBLOCK != errno) {
                 logger_debug("write fail, fd [%d], errno: [%d]\n", fd, errno);
                 goto _close_conn;
             }
             // send buffer full, wait new event
-            logger_warn("client_send_cb output buffer full\n");
+            logger_warn("client_send_cb output buffer full, fd: [%d]\n", fd);
+            buffer_t *buf = buffer_new(remain);
+            if (NULL == buf) {
+                logger_error("buffer_new fail, errno: [%d]\n", errno);
+                goto _close_conn;
+            }
+            buffer_concat(buf, client->output->data + idx, remain);
+            buffer_free(client->output);
+            client->output = buf;
             break;
         } else {
             idx += size;
@@ -574,20 +583,30 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     ssize_t idx = 0;
     ssize_t size;
     while (1) {
-        if ((remote->output->used - idx) <= 0) {
+        size_t remain = remote->output->used - idx;
+        if (remain <= 0) {
             // all data send, stop
             buffer_reset(remote->output);
             ev_io_stop(loop, w);
             break;
         }
 
-        size = write(fd, remote->output->data + idx, remote->output->used - idx);
+        size = write(fd, remote->output->data + idx, remain);
         if (size < 0) {
             if (EAGAIN != errno && EWOULDBLOCK != errno) {
+                logger_debug("write fail, fd [%d], errno: [%d]\n", fd, errno);
                 goto _close_conn;
             }
             // send buffer full, wait new event
-            logger_warn("remote_send_cb output buffer full\n");
+            logger_warn("remote_send_cb output buffer full, fd: [fd]\n", fd);
+            buffer_t *buf = buffer_new(remain);
+            if (NULL == buf) {
+                logger_error("buffer_new fail, errno: [%d]\n", errno);
+                goto _close_conn;
+            }
+            buffer_concat(buf, remote->output->data + idx, remain);
+            buffer_free(remote->output);
+            remote->output = buf;
             break;
         } else {
             idx += size;
