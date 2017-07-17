@@ -70,12 +70,16 @@ void dns_resolve_cb(struct sockaddr_storage storage, struct resolve_query_t *que
     struct ev_loop *loop = conn->loop;
     struct socks5_remote_conn *remote = &conn->remote;
 
-    connect_to_remote(conn, &storage);
+    if (connect_to_remote(conn, &storage) < 0) {
+        logger_error("connect_to_remote fail, errno [%d]\n", errno);
+        return;
+    }
 
     socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
     ev_io_init(remote->rw, remote_recv_cb, remote->fd, EV_READ);
     ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
     ev_io_start(loop, remote->ww);
+    return;
 }
 
 int connect_to_remote(struct socks5_conn *conn, struct sockaddr_storage *storage) {
