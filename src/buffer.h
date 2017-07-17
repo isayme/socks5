@@ -1,8 +1,7 @@
-#ifndef BUFFER_H
-#define BUFFER_H
+#ifndef __BUFFER_H
+#define __BUFFER_H
 
 #include <stdlib.h>
-#include <stddef.h>
 
 #define BUFFER_MAX_PREALLOC (1024*1024)
 #define BUFFER_DEFAULT_SIZE 2048
@@ -10,7 +9,7 @@
 typedef struct {
     size_t capacity;
     size_t used;
-    uint8_t *data;
+    char *data;
 } buffer_t;
 
 buffer_t *buffer_new(size_t len);

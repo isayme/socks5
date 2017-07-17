@@ -1,17 +1,15 @@
 #include <string.h>
-#include <stdint.h>
 #include "buffer.h"
 
 buffer_t *buffer_new(size_t len) {
-    buffer_t *buf = NULL;
-    buf = (buffer_t *)malloc(sizeof(buffer_t));
-
+    buffer_t *buf = (buffer_t *)malloc(sizeof(buffer_t));
     if (NULL == buf) {
         return NULL;
     }
+
     buf->capacity = len;
     buf->used = 0;
-    buf->data = (uint8_t *)malloc(len);
+    buf->data = (char *)malloc(len);
     if (NULL == buf->data) {
         free(buf);
         return NULL;
@@ -32,14 +30,14 @@ static buffer_t *buffer_trymakeroom(buffer_t *buf, size_t addlen) {
         return buf;
     }
 
-    size_t newcapacity = buf->capacity + addlen;
+    size_t newcapacity = buf->used + addlen;
     if (newcapacity < BUFFER_MAX_PREALLOC) {
         newcapacity *= 2;
     } else {
         newcapacity += BUFFER_MAX_PREALLOC;
     }
 
-    buf->data = (uint8_t *)realloc(buf->data, newcapacity);
+    buf->data = (char *)realloc(buf->data, newcapacity);
     if (NULL == buf->data) {
         return NULL;
     }
