@@ -433,7 +433,7 @@ void client_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 goto _close_conn;
             }
             // send buffer full, wait new event
-            logger_debug("client_send_cb output buffer full\n");
+            logger_warn("client_send_cb output buffer full\n");
             break;
         } else {
             idx += size;
@@ -535,7 +535,7 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
         struct sockaddr_in addr;
         int len = sizeof(addr);
         if (getpeername(remotefd, (struct sockaddr *)&addr, &len) < 0) {
-            logger_error("getpeername fail, errno: [%d]\n", errno);
+            logger_warn("getpeername fail, errno: [%d]\n", errno);
             // something wrong
             reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
             buffer_concat(client->output, &reply, sizeof(reply));
@@ -575,7 +575,7 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 goto _close_conn;
             }
             // send buffer full, wait new event
-            logger_debug("remote_send_cb output buffer full\n");
+            logger_warn("remote_send_cb output buffer full\n");
             break;
         } else {
             idx += size;
