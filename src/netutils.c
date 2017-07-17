@@ -82,7 +82,7 @@ int strtosockaddr(const char *src, void *addrptr) {
     if (ret > 0) {
         storage->ss_family = AF_INET6;
         struct sockaddr_in6 *addr = (struct sockaddr_in6 *)addrptr;
-        memcpy(&addr->sin6_addr, &addr6.sin6_addr, sizeof(addr4.sin_addr));
+        memcpy(&addr->sin6_addr, &addr6.sin6_addr, sizeof(addr6.sin6_addr));
         return ret;
     }
 
