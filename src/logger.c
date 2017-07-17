@@ -34,15 +34,6 @@ static char *format_time(char *buf) {
     return buf;
 }
 
-/**
- * color definitions
- */
-#define LOGGER_COLOR_RED        "\x1b[31m"
-#define LOGGER_COLOR_GREEN      "\x1b[32m"
-#define LOGGER_COLOR_YELLOW     "\x1b[33m"
-#define LOGGER_COLOR_WHITE      "\x1b[37m"
-#define LOGGER_COLOR_RESET      "\x1b[0m"
-
 int logger_init(char *filename, uint8_t options) {
     g_logger.fp = NULL;
     g_logger.with_color = LOGGER_COLOR_OFF;
@@ -65,40 +56,36 @@ int logger_close() {
     return fclose(g_logger.fp);
 }
 
-#define logger_register_logger(name, tag, log_level, color)                                 \
-int name(const char *format, ...) {                                                         \
-    int nwriten = 0;                                                                        \
-    char timestamp[LOGGER_TIMESTAMP_LEN];                                                   \
-    va_list arg;                                                                            \
-                                                                                            \
-    if (log_level > g_logger.level) {                                                       \
-        return 0;                                                                           \
-    }                                                                                       \
-                                                                                            \
-    if (LOGGER_COLOR_ON == g_logger.with_color) {                                           \
-        fprintf(stdout, color);                                                             \
-    }                                                                                       \
-                                                                                            \
-    if (g_logger.fp) {                                                                      \
-        fprintf(g_logger.fp, "%s [" #tag "] ", format_time(timestamp));                     \
-        va_start(arg, format);                                                              \
-        nwriten += vfprintf(g_logger.fp, format, arg);                                      \
-        va_end(arg);                                                                        \
-    }                                                                                       \
-    fprintf(stdout, "%s [" #tag "] ", format_time(timestamp));                              \
-    va_start(arg, format);                                                                  \
-    vfprintf(stdout, format, arg);                                                          \
-    va_end(arg);                                                                            \
-                                                                                            \
-    if (LOGGER_COLOR_ON == g_logger.with_color) {                                           \
-        fprintf(stdout, LOGGER_COLOR_RESET);                                                \
-        fflush(stdout);                                                                     \
-    }                                                                                       \
-                                                                                            \
-    return nwriten;                                                                         \
-}                                                                                           \
+int logger_printf(uint8_t log_level, const char *color, const char *format, ...) {
+    char timestamp[LOGGER_TIMESTAMP_LEN];
+    int nwritten = 0;
+    va_list arg;
 
-logger_register_logger(logger_debug, DEBUG, LOGGER_LEVEL_DEBUG, LOGGER_COLOR_WHITE)
-logger_register_logger(logger_info, INFO, LOGGER_LEVEL_INFO, LOGGER_COLOR_GREEN)
-logger_register_logger(logger_warn, WARN, LOGGER_LEVEL_WARNING, LOGGER_COLOR_YELLOW)
-logger_register_logger(logger_error, ERROR, LOGGER_LEVEL_ERROR, LOGGER_COLOR_RED)
+    if (log_level > g_logger.level) {
+        return 0;
+    }
+
+    if (LOGGER_COLOR_ON == g_logger.with_color) {
+        fprintf(stdout, "%s", color);
+    }
+
+    format_time(timestamp);
+
+    if (g_logger.fp) {
+        fprintf(g_logger.fp, "%s ", timestamp);
+        va_start(arg, format);
+        vfprintf(g_logger.fp, format, arg);
+        va_end(arg);
+    }
+    fprintf(stdout, "%s ", timestamp);
+    va_start(arg, format);
+    nwritten += vfprintf(stdout, format, arg);
+    va_end(arg);
+
+    if (LOGGER_COLOR_ON == g_logger.with_color) {
+        fprintf(stdout, LOGGER_COLOR_RESET);
+        fflush(stdout);
+    }
+
+    return nwritten;
+}

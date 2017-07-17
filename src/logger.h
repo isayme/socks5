@@ -5,6 +5,15 @@
 #include <stdint.h>
 
 /**
+ * color definitions
+ */
+#define LOGGER_COLOR_RED        "\x1b[31m"
+#define LOGGER_COLOR_GREEN      "\x1b[32m"
+#define LOGGER_COLOR_YELLOW     "\x1b[33m"
+#define LOGGER_COLOR_WHITE      "\x1b[37m"
+#define LOGGER_COLOR_RESET      "\x1b[0m"
+
+/**
  * logger context
  */
 typedef struct logger_ctx_s {
@@ -31,7 +40,7 @@ typedef struct logger_ctx_s {
  *   LOGGER_COLOR_OFF: disable colorful log;
  *   LOGGER_LEVEL_DEBUG, LOGGER_LEVEL_INFO, LOGGER_LEVEL_WARNING, LOGGER_LEVEL_ERROR: define log level
  */
-int logger_init(char *filename, uint8_t level);
+int logger_init(char *filename, uint8_t options);
 
 /**
  * Close logger
@@ -40,23 +49,23 @@ int logger_init(char *filename, uint8_t level);
 int logger_close();
 
 /**
- * Record a debug level log
+ * Record a log
  */
-int logger_debug(const char *format, ...);
+int logger_printf(uint8_t log_level, const char *color, const char *format, ...);
 
-/**
- * Record a information level log
- */
-int logger_info(const char *format, ...);
+// level file_path:func_name:line_number
+#define LOGGER_PREFIX "[%s] (%s:%s:%d) "
 
-/**
- * Record a warning level log
- */
-int logger_warn(const char *format, ...);
+#define logger_debug(format, ...)   \
+    logger_printf(LOGGER_LEVEL_DEBUG, LOGGER_COLOR_WHITE, LOGGER_PREFIX format, "WARN", __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 
-/**
- * Record a error level log
- */
-int logger_error(const char *format, ...);
+#define logger_info(format, ...)    \
+    logger_printf(LOGGER_LEVEL_INFO, LOGGER_COLOR_GREEN, LOGGER_PREFIX format, "INFO", __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+
+#define logger_warn(format, ...)    \
+    logger_printf(LOGGER_LEVEL_WARNING, LOGGER_COLOR_YELLOW, LOGGER_PREFIX format, "WARN", __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+
+#define logger_error(format, ...)   \
+    logger_printf(LOGGER_LEVEL_ERROR, LOGGER_COLOR_RED, LOGGER_PREFIX format, "ERROR", __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 
 #endif // !__LOGGER_H
