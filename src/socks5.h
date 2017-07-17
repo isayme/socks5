@@ -68,6 +68,8 @@ struct socks5_response {
 
 #pragma pack()
 
+#define SOCKS5_DEFAULT_BUFFER_SIZE 128
+
 struct socks5_client_conn {
     int fd;
     struct ev_io *rw;   // read watcher

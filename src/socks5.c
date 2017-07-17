@@ -15,11 +15,11 @@ struct socks5_conn *socks5_conn_new() {
 
     conn->stage = SOCKS5_CONN_STAGE_EXMETHOD;
 
-    conn->client.input = buffer_new(BUFFER_DEFAULT_SIZE);
+    conn->client.input = buffer_new(SOCKS5_DEFAULT_BUFFER_SIZE);
     if (NULL == conn->client.input) {
         goto _clean;
     }
-    conn->client.output = buffer_new(BUFFER_DEFAULT_SIZE);
+    conn->client.output = buffer_new(SOCKS5_DEFAULT_BUFFER_SIZE);
     if (NULL == conn->client.output) {
         goto _clean;
     }
@@ -34,15 +34,15 @@ struct socks5_conn *socks5_conn_new() {
     }
     conn->client.ww->data = conn;
 
-    conn->remote.input = buffer_new(BUFFER_DEFAULT_SIZE);
+    conn->remote.input = buffer_new(SOCKS5_DEFAULT_BUFFER_SIZE);
     if (NULL == conn->remote.input) {
         goto _clean;
     }
-    conn->remote.output = buffer_new(BUFFER_DEFAULT_SIZE);
+    conn->remote.output = buffer_new(SOCKS5_DEFAULT_BUFFER_SIZE);
     if (NULL == conn->remote.output) {
         goto _clean;
     }
-    conn->remote.bndaddr = buffer_new(BUFFER_DEFAULT_SIZE);
+    conn->remote.bndaddr = buffer_new(SOCKS5_DEFAULT_BUFFER_SIZE);
     if (NULL == conn->remote.bndaddr) {
         goto _clean;
     }
