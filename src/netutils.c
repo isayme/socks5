@@ -58,11 +58,6 @@ int set_nosigpipe(int fd) {
     return 0;
 }
 
-// int set_nosigpipe(int fd) {
-//     int opt = 1;
-//     return setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&opt, sizeof(opt));
-// }
-
 int strtosockaddr(const char *src, void *addrptr) {
     int ret;
 
