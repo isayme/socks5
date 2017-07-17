@@ -90,7 +90,16 @@ int main (int argc, char **argv) {
         logger_info("resolve_init ok\n");
     }
 
+    // if (register_signals() < 0) {
+    //     logger_error("register_signals fail, errno: [%d]\n", errno);
+    //     exit(EXIT_FAILURE);
+    // }
+
     server.fd = create_and_bind(LISTEN_PORT, LISTEN_BACKLOG);
+    if (server.fd < 0) {
+        logger_error("create_and_bind fail, errno: [%d]\n", errno);
+        exit(EXIT_FAILURE);
+    }
 
     ev_io_init(&server, accept_cb, server.fd, EV_READ);
     ev_io_start(loop, &server);
