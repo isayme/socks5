@@ -313,6 +313,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                     char *port = host + 4;
                     memcpy(&addr->sin_addr.s_addr, host, 4);
                     memcpy(&addr->sin_port, port, 2);
+                    remote->port = ntohs(addr->sin_port);
 
                     buffer_concat(remote->bndaddr, (char *)&addr->sin_addr.s_addr, 4);
                     buffer_concat(remote->bndaddr, (char *)&addr->sin_port, 2);
@@ -384,6 +385,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                     char *port = host + 16;
                     memcpy(&addr->sin6_addr, host, 16);
                     memcpy(&addr->sin6_port, port, 2);
+                    remote->port = ntohs(addr->sin6_port);
 
                     buffer_concat(remote->bndaddr, (char *)&addr->sin6_addr, 16);
                     buffer_concat(remote->bndaddr, (char *)&addr->sin6_port, 2);
