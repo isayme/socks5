@@ -16,11 +16,11 @@ void accept_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
 
     while (1) {
         struct socks5_conn *conn = NULL;
-        struct sockaddr_in client;
-        socklen_t len = sizeof(struct sockaddr);
+        struct sockaddr_storage storage;
+        socklen_t len = sizeof(struct sockaddr_storage);
         int clientfd;
 
-        clientfd = accept(fd, (struct sockaddr *)&client, &len);
+        clientfd = accept(fd, (struct sockaddr *)&storage, &len);
         if (clientfd == -1) {
             if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
                 logger_error("accept error: [%d]\n", errno);
@@ -51,9 +51,19 @@ void accept_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
         // start receive handleshake
         ev_io_start(loop, conn->client.rw);
 
-        logger_info("accept connection [%d](host=%s, port=%d)\n", clientfd,
-            inet_ntoa(client.sin_addr),
-            ntohs(client.sin_port));
+        if (AF_INET == storage.ss_family) {
+            char ip[INET_ADDRSTRLEN];
+            struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
+            logger_info("accept connection (host=%s, port=%d)\n",
+                inet_ntop(storage.ss_family, &addr->sin_addr.s_addr, ip, sizeof(ip)),
+                ntohs(addr->sin_port));
+        } else if (AF_INET6 == storage.ss_family) {
+            char ip[INET6_ADDRSTRLEN];
+            struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&storage;
+            logger_info("accept connection (host=%s, port=%d)\n",
+                inet_ntop(storage.ss_family, &addr->sin6_addr, ip, sizeof(ip)),
+                ntohs(addr->sin6_port));
+        }
 
         continue;
 
