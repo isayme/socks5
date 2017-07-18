@@ -49,17 +49,17 @@ static int register_signals() {
 }
 
 int create_and_bind(uint16_t port, int32_t backlog) {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    int sockfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (sockfd < 0) {
         logger_error("sockfd create failed");
         exit(EXIT_FAILURE);
     }
 
-    struct sockaddr_in servaddr;
+    struct sockaddr_in6 servaddr;
     memset((char *)&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(port);
+    servaddr.sin6_family = AF_INET6;
+    servaddr.sin6_addr = in6addr_any;
+    servaddr.sin6_port = htons(port);
 
     set_nonblocking(sockfd);
     set_reuseaddr(sockfd);
