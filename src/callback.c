@@ -248,21 +248,22 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             break;
         }
         case SOCKS5_CONN_STAGE_USERNAMEPASSWORD: {
-            if (SOCKS5_VERSION != *client->input->data) {
+            if (0x01 != *client->input->data) {
+                logger_debug("invalid socks5 version: [%d]\n", *client->input->data);
                 goto _close_conn;
             }
 
-            char username[512];
-            char password[512];
+            char username[256];
+            char password[256];
             memset(username, 0, sizeof(username));
             memset(password, 0, sizeof(password));
             uint8_t username_len = *(client->input->data + 1);
-            memcpy(username, client->input->data + 1, username_len);
+            memcpy(username, client->input->data + 2, username_len);
             uint8_t password_len = *(client->input->data + username_len + 2);
-            memcpy(password, client->input->data + username_len + password_len + 3, password_len);
+            memcpy(password, client->input->data + username_len + 3, password_len);
             logger_debug("username/password: [%s]/[%s]\n", username, password);
 
-            char *reply_ok = "0x050x00";
+            char *reply_ok = "\x01\x00";
             buffer_concat(client->output, reply_ok, 2);
 
             buffer_reset(client->input);
