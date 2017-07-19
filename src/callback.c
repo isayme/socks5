@@ -92,31 +92,31 @@ int connect_to_remote(struct socks5_conn *conn, struct sockaddr_storage *storage
 
     int fd = 0;
     socklen_t address_len;
-    char ipaddr[20];
+    // use INET6_ADDRSTRLEN instead of INET_ADDRSTRLEN
+    char ipaddr[INET6_ADDRSTRLEN];
 
     fd = create_socket(storage->ss_family);
     if (fd < 0) {
         logger_debug("create_socket fail, errno: [%d]\n", errno);
         goto _err;
     }
-    remote->fd = fd;
 
     if (AF_INET == storage->ss_family) {
         struct sockaddr_in *addr = (struct sockaddr_in *)storage;
-        addr->sin_port = htons(remote->port);
         address_len = sizeof(struct sockaddr_in);
         if (NULL == inet_ntop(storage->ss_family, &(addr->sin_addr), ipaddr, sizeof(ipaddr))) {
             logger_error("inet_ntop fail, errno: [%d]\n", errno);
             goto _err;
         }
+        addr->sin_port = htons(remote->port);
     } else if (AF_INET6 == storage->ss_family) {
         struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
-        addr->sin6_port = htons(remote->port);
         address_len = sizeof(struct sockaddr_in6);
         if (NULL == inet_ntop(storage->ss_family, &(addr->sin6_addr), ipaddr, sizeof(ipaddr))) {
             logger_error("inet_ntop fail, errno: [%d]\n", errno);
             goto _err;
         }
+        addr->sin6_port = htons(remote->port);
     } else {
         logger_warn("invalid sa_family: [%d]\n", storage->ss_family);
         goto _err;
@@ -162,11 +162,13 @@ void dns_resolve_cb(struct sockaddr_storage *storage, struct resolve_query_t *qu
         goto _err;
     }
 
-    if (connect_to_remote(conn, storage) < 0) {
+    int remotefd = connect_to_remote(conn, storage);
+    if (remotefd < 0) {
         logger_error("connect_to_remote fail, errno [%d]\n", errno);
         goto _err;
     }
 
+    remote->fd = remotefd;
     socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
     ev_io_init(remote->rw, remote_recv_cb, remote->fd, EV_READ);
     ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
@@ -441,11 +443,13 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             ev_io_stop(loop, w);
             buffer_reset(client->input);
 
-            if (connect_to_remote(conn, &storage) < 0) {
+            int remotefd = connect_to_remote(conn, &storage);
+            if (remotefd < 0) {
                 logger_error("connect_to_remote fail, errno [%d]\n", errno);
                 goto _response_fail;
             }
 
+            remote->fd = remotefd;
             socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
             ev_io_init(remote->rw, remote_recv_cb, remote->fd, EV_READ);
             ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
@@ -453,6 +457,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             break;
         _response_fail:
             socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CLOSING);
+            reply.rep = SOCKS5_RESPONSE_SERVER_FAILURE;
             buffer_concat(conn->client.output, (char *)&reply, sizeof(reply));
             ev_io_start(loop, client->ww);
             break;
