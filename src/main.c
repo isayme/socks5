@@ -14,11 +14,14 @@
 #include "netutils.h"
 #include "resolve.h"
 #include "callback.h"
+#include "socks5.h"
 
 #define EPOLL_SIZE 1024
 #define LISTEN_BACKLOG 128
 #define MAX_EVENTS_COUNT 128
 #define LISTEN_PORT 23456
+#define SERVER_DEFAULT_USERNAME "uusername"
+#define SERVER_DEFAULT_PASSWORD "ppassword"
 
 static void signal_handler(int sig) {
     logger_info("receive signal: [%d]\n", sig);
@@ -81,7 +84,14 @@ int main (int argc, char **argv) {
     logger_info("starting ...\n");
 
     struct ev_loop *loop = ev_default_loop(0);
-    struct ev_io server;
+    struct ev_io server_watcher;
+    struct socks5_server server = {
+        strlen(SERVER_DEFAULT_USERNAME),
+        SERVER_DEFAULT_USERNAME,
+        strlen(SERVER_DEFAULT_PASSWORD),
+        SERVER_DEFAULT_PASSWORD,
+        LISTEN_PORT
+    };
 
     if (resolve_init(loop, NULL, 0) < 0) {
         logger_error("resolve_init fail\n");
@@ -95,14 +105,15 @@ int main (int argc, char **argv) {
     //     exit(EXIT_FAILURE);
     // }
 
-    server.fd = create_and_bind(LISTEN_PORT, LISTEN_BACKLOG);
-    if (server.fd < 0) {
+    server_watcher.fd = create_and_bind(server.port, LISTEN_BACKLOG);
+    server_watcher.data = &server;
+    if (server_watcher.fd < 0) {
         logger_error("create_and_bind fail, errno: [%d]\n", errno);
         exit(EXIT_FAILURE);
     }
 
-    ev_io_init(&server, accept_cb, server.fd, EV_READ);
-    ev_io_start(loop, &server);
+    ev_io_init(&server_watcher, accept_cb, server_watcher.fd, EV_READ);
+    ev_io_start(loop, &server_watcher);
 
     ev_run(loop, 0);
 

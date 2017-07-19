@@ -66,6 +66,24 @@ struct socks5_response {
     uint8_t addrtype;
 };
 
+#define SOCKS5_AUTH_USERNAMEPASSWORD_VER 0x01
+
+#define SOCKS5_AUTH_USERNAMEPASSWORD_MAX_LEN        256
+struct socks5_userpass_req {
+    uint8_t ver;
+    uint8_t ulen;
+    char username[SOCKS5_AUTH_USERNAMEPASSWORD_MAX_LEN];
+    uint8_t plen;
+    char password[SOCKS5_AUTH_USERNAMEPASSWORD_MAX_LEN];
+};
+
+#define SOCKS5_AUTH_USERNAMEPASSWORD_STATUS_OK      0x00
+#define SOCKS5_AUTH_USERNAMEPASSWORD_STATUS_FAIL    0x01
+struct socks5_userpass_res {
+    uint8_t ver;
+    uint8_t status;
+};
+
 #pragma pack()
 
 #define SOCKS5_DEFAULT_BUFFER_SIZE 128
@@ -91,7 +109,16 @@ struct socks5_remote_conn {
     buffer_t *bndaddr;
 };
 
+struct socks5_server {
+    size_t ulen;
+    char username[SOCKS5_AUTH_USERNAMEPASSWORD_MAX_LEN];
+    size_t plen;
+    char password[SOCKS5_AUTH_USERNAMEPASSWORD_MAX_LEN];
+    uint16_t port;
+};
+
 struct socks5_conn {
+    struct socks5_server *server;
     struct socks5_client_conn client;
     struct socks5_remote_conn remote;
 #define SOCKS5_CONN_STAGE_EXMETHOD          1

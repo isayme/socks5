@@ -13,6 +13,7 @@
 
 void accept_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     int fd = w->fd;
+    struct socks5_server *server = (struct socks5_server *)w->data;
 
     while (1) {
         struct socks5_conn *conn = NULL;
@@ -45,6 +46,7 @@ void accept_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
         }
 
         conn->loop = loop;
+        conn->server = server;
         conn->client.fd = clientfd;
         ev_io_init(conn->client.rw, client_recv_cb, clientfd, EV_READ);
         ev_io_init(conn->client.ww, client_send_cb, clientfd, EV_WRITE);
@@ -248,23 +250,61 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             break;
         }
         case SOCKS5_CONN_STAGE_USERNAMEPASSWORD: {
-            if (0x01 != *client->input->data) {
+            struct socks5_userpass_req req;
+            memset(&req, 0, sizeof(struct socks5_userpass_req));
+
+            req.ver = *client->input->data;
+            if (SOCKS5_AUTH_USERNAMEPASSWORD_VER != req.ver) {
                 logger_debug("invalid socks5 version: [%d]\n", *client->input->data);
                 goto _close_conn;
             }
 
-            char username[256];
-            char password[256];
-            memset(username, 0, sizeof(username));
-            memset(password, 0, sizeof(password));
-            uint8_t username_len = *(client->input->data + 1);
-            memcpy(username, client->input->data + 2, username_len);
-            uint8_t password_len = *(client->input->data + username_len + 2);
-            memcpy(password, client->input->data + username_len + 3, password_len);
-            logger_debug("username/password: [%s]/[%s]\n", username, password);
+            if (client->input->used < 2) {
+                logger_warn("no username len, need more data\n");
+                // wating more data
+                return;
+            }
+            req.ulen = *(client->input->data + 1);
+            if (client->input->used < (2 + req.ulen)) {
+                logger_warn("no username, need more data\n");
+                // wating more data
+                return;
+            }
+            memcpy(req.username, client->input->data + 2, req.ulen);
 
-            char *reply_ok = "\x01\x00";
-            buffer_concat(client->output, reply_ok, 2);
+            if (client->input->used < (req.ulen + 3)) {
+                logger_warn("no password len, need more data\n");
+                // wating more data
+                return;
+            }
+            req.plen = *(client->input->data + req.ulen + 2);
+            if (client->input->used < (req.ulen + req.plen + 3)) {
+                logger_warn("no password, need more data\n");
+                // wating more data
+                return;
+            }
+            memcpy(req.password, client->input->data + req.ulen + 3, req.plen);
+
+            logger_debug("username/password: [%s]/[%s]\n", req.username, req.password);
+
+            struct socks5_userpass_res res = {
+                SOCKS5_AUTH_USERNAMEPASSWORD_VER,
+                SOCKS5_AUTH_USERNAMEPASSWORD_STATUS_FAIL
+            };
+
+            struct socks5_server *server = conn->server;
+            if (server->ulen == req.ulen &&
+                server->plen == req.plen &&
+                0 == memcmp(&server->username, &req.username, req.ulen) &&
+                0 == memcmp(&server->password, &req.password, req.ulen)) {
+                res.status = SOCKS5_AUTH_USERNAMEPASSWORD_STATUS_OK;
+            }
+
+            if (SOCKS5_AUTH_USERNAMEPASSWORD_STATUS_FAIL == res.status) {
+                socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
+            }
+
+            buffer_concat(client->output, &res, sizeof(struct socks5_userpass_res));
 
             buffer_reset(client->input);
             ev_io_stop(loop, w);
@@ -291,7 +331,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             };
 
             if (SOCKS5_CMD_CONNECT != req->cmd) {
-                logger_debug("not supported cmd: [%d]\n", req->cmd);
+                logger_warn("not supported cmd: [%d]\n", req->cmd);
                 reply.rep = SOCKS5_RESPONSE_COMMAND_NOT_SUPPORTED;
                 goto _response_fail;
             }
@@ -393,7 +433,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                     break;
                 }
                 default:
-                    logger_debug("not supported addrtype: [%d]\n", req->addrtype);
+                    logger_warn("not supported addrtype: [%d]\n", req->addrtype);
                     reply.rep = SOCKS5_RESPONSE_ADDRTYPE_NOT_SUPPORTED;
                     goto _response_fail;
             }
