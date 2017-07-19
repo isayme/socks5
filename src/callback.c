@@ -129,7 +129,7 @@ int connect_to_remote(struct socks5_conn *conn, struct sockaddr_storage *storage
         logger_info("connecting to remote host=%s(%s), port=%d\n", remote->hostname, ipaddr, remote->port);
     }
 
-    if (connect(remote->fd, (struct sockaddr *)storage, address_len) < 0) {
+    if (connect(fd, (struct sockaddr *)storage, address_len) < 0) {
         if (EINPROGRESS != errno) {
             logger_debug("connect fail, errno: [%d]\n", errno);
             goto _err;
