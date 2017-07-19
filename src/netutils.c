@@ -15,14 +15,17 @@ int create_socket(int af) {
     }
 
     if (set_nonblocking(fd) < 0) {
+        close(fd);
         return -1;
     }
 
     if (set_reuseaddr(fd) < 0) {
+        close(fd);
         return -1;
     }
 
     if (set_nosigpipe(fd) < 0) {
+        close(fd);
         return -1;
     }
 
