@@ -55,7 +55,7 @@ int create_and_bind(uint16_t port, int32_t backlog) {
     int sockfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (sockfd < 0) {
         logger_error("sockfd create failed");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     struct sockaddr_in6 servaddr;
@@ -64,17 +64,28 @@ int create_and_bind(uint16_t port, int32_t backlog) {
     servaddr.sin6_addr = in6addr_any;
     servaddr.sin6_port = htons(port);
 
-    set_nonblocking(sockfd);
-    set_reuseaddr(sockfd);
+    if (set_nonblocking(sockfd) < 0) {
+        logger_error("set_nonblocking fail [%d]\n", errno);
+        close(sockfd);
+        return -1;
+    }
+
+    if (set_reuseaddr(sockfd) < 0) {
+        logger_error("set_reuseaddr fail [%d]\n", errno);
+        close(sockfd);
+        return -1;
+    }
 
     if (bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         logger_error("bind error [%d]\n", errno);
-        exit(EXIT_FAILURE);
+        close(sockfd);
+        return -1;
     }
 
     if (listen(sockfd, backlog) < 0) {
         logger_error("listen error [%d]!\n", errno);
-        exit(EXIT_FAILURE);
+        close(sockfd);
+        return -1;
     }
 
     return sockfd;
