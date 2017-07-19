@@ -438,21 +438,20 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                     goto _response_fail;
             }
 
+            ev_io_stop(loop, w);
+            buffer_reset(client->input);
+
             if (connect_to_remote(conn, &storage) < 0) {
                 logger_error("connect_to_remote fail, errno [%d]\n", errno);
                 goto _response_fail;
             }
 
-            ev_io_stop(loop, w);
-            buffer_reset(client->input);
             socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
             ev_io_init(remote->rw, remote_recv_cb, remote->fd, EV_READ);
             ev_io_init(remote->ww, remote_send_cb, remote->fd, EV_WRITE);
             ev_io_start(loop, remote->ww);
             break;
         _response_fail:
-            ev_io_stop(loop, w);
-            buffer_reset(client->input);
             socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CLOSING);
             buffer_concat(conn->client.output, (char *)&reply, sizeof(reply));
             ev_io_start(loop, client->ww);
