@@ -139,7 +139,7 @@ int main (int argc, char **argv) {
     ev_io_init(&server_watcher, accept_cb, server_watcher.fd, EV_READ);
     ev_io_start(loop, &server_watcher);
 
-    logger_info("start working, port: [%d]\n", g_server.port);
+    logger_info("start working, port: [%d], auth_method: [%d]\n", g_server.port, g_server.auth_method);
     ev_run(loop, 0);
 
     logger_info("exiting ...\n");

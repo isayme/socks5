@@ -229,16 +229,17 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 SOCKS5_VERSION,
                 SOCKS5_AUTH_NOACCEPTABLE
             };
+
             int i;
             for (i = 0; i < method_req->nmethods; i++) {
+                logger_debug("auth methods: [%d]\n", method_req->methods[i]);
                 if (server->auth_method == method_req->methods[i]) {
-                    reply.method = SOCKS5_AUTH_USERNAMEPASSWORD;
-                    conn->method = reply.method;
-                } else if (server->auth_method == method_req->methods[i]) {
-                    reply.method = SOCKS5_AUTH_NOAUTH;
+                    reply.method = server->auth_method;
                     conn->method = reply.method;
                 }
             }
+
+            logger_debug("auth method: [%d]\n", reply.method);
 
             buffer_concat(client->output, (char *)&reply, sizeof(reply));
             if (SOCKS5_AUTH_NOACCEPTABLE == reply.method) {
