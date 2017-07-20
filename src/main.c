@@ -16,11 +16,12 @@
 #include "callback.h"
 #include "socks5.h"
 #include "optparser.h"
+#include "help.h"
 
 #define EPOLL_SIZE 1024
 #define LISTEN_BACKLOG 128
 #define MAX_EVENTS_COUNT 128
-#define LISTEN_PORT 23456
+#define LISTEN_PORT 1080
 
 static void signal_handler(int sig) {
     logger_info("receive signal: [%d]\n", sig);
@@ -102,6 +103,7 @@ struct socks5_server g_server = {
 
 int main (int argc, char **argv) {
     if (socks5_server_parse(argc, argv) < 0) {
+        help();
         exit(EXIT_FAILURE);
     }
 
