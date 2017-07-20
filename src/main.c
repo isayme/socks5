@@ -21,8 +21,6 @@
 #define LISTEN_BACKLOG 128
 #define MAX_EVENTS_COUNT 128
 #define LISTEN_PORT 23456
-#define SERVER_DEFAULT_USERNAME "uusername"
-#define SERVER_DEFAULT_PASSWORD "ppassword"
 
 static void signal_handler(int sig) {
     logger_info("receive signal: [%d]\n", sig);
@@ -93,11 +91,12 @@ int create_and_bind(uint16_t port, int32_t backlog) {
 }
 
 struct socks5_server g_server = {
-    strlen(SERVER_DEFAULT_USERNAME),
-    SERVER_DEFAULT_USERNAME,
-    strlen(SERVER_DEFAULT_PASSWORD),
-    SERVER_DEFAULT_PASSWORD,
+    0,
+    "",
+    0,
+    "",
     LISTEN_PORT,
+    SOCKS5_AUTH_NOAUTH,
     false
 };
 

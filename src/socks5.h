@@ -116,6 +116,7 @@ struct socks5_server {
     size_t plen;
     char password[SOCKS5_AUTH_USERNAMEPASSWORD_MAX_LEN];
     uint16_t port;
+    uint8_t auth_method;
     bool daemon;
 };
 

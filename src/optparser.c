@@ -50,6 +50,8 @@ int socks5_server_parse(int argc, char **argv) {
                             return -1;
                         }
                         stpcpy(g_server.username, optarg);
+                        g_server.ulen = ulen;
+                        g_server.auth_method = SOCKS5_AUTH_USERNAMEPASSWORD;
                         logger_debug("username: [%s]\n", g_server.username);
                         break;
                     }
@@ -61,6 +63,7 @@ int socks5_server_parse(int argc, char **argv) {
                             return -1;
                         }
                         logger_debug("password: [%s]\n", g_server.password);
+                        g_server.plen = plen;
                         stpcpy(g_server.password, optarg);
                         break;
                     }

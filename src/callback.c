@@ -183,6 +183,7 @@ _err:
 
 void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     struct socks5_conn *conn = (struct socks5_conn *)w->data;
+    struct socks5_server *server = conn->server;
     struct socks5_client_conn *client = &conn->client;
     struct socks5_remote_conn *remote = &conn->remote;
     int fd = w->fd;
@@ -230,10 +231,10 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             };
             int i;
             for (i = 0; i < method_req->nmethods; i++) {
-                if (SOCKS5_AUTH_USERNAMEPASSWORD == method_req->methods[i]) {
+                if (server->auth_method == method_req->methods[i]) {
                     reply.method = SOCKS5_AUTH_USERNAMEPASSWORD;
                     conn->method = reply.method;
-                } else if (SOCKS5_AUTH_NOAUTH == method_req->methods[i]) {
+                } else if (server->auth_method == method_req->methods[i]) {
                     reply.method = SOCKS5_AUTH_NOAUTH;
                     conn->method = reply.method;
                 }
@@ -294,7 +295,6 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 SOCKS5_AUTH_USERNAMEPASSWORD_STATUS_FAIL
             };
 
-            struct socks5_server *server = conn->server;
             if (server->ulen == req.ulen &&
                 server->plen == req.plen &&
                 0 == memcmp(&server->username, &req.username, req.ulen) &&
