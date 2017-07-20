@@ -15,6 +15,7 @@
 #include "resolve.h"
 #include "callback.h"
 #include "socks5.h"
+#include "optparser.h"
 
 #define EPOLL_SIZE 1024
 #define LISTEN_BACKLOG 128
@@ -91,18 +92,31 @@ int create_and_bind(uint16_t port, int32_t backlog) {
     return sockfd;
 }
 
+struct socks5_server g_server = {
+    strlen(SERVER_DEFAULT_USERNAME),
+    SERVER_DEFAULT_USERNAME,
+    strlen(SERVER_DEFAULT_PASSWORD),
+    SERVER_DEFAULT_PASSWORD,
+    LISTEN_PORT,
+    false
+};
+
 int main (int argc, char **argv) {
+    if (socks5_server_parse(argc, argv) < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (g_server.daemon) {
+        if (daemon(1, 0) < 0) {
+            logger_error("daemon fail, errno [%d]\n", errno);
+            exit(EXIT_FAILURE);
+        }
+    }
+
     logger_info("starting ...\n");
 
     struct ev_loop *loop = ev_default_loop(0);
     struct ev_io server_watcher;
-    struct socks5_server server = {
-        strlen(SERVER_DEFAULT_USERNAME),
-        SERVER_DEFAULT_USERNAME,
-        strlen(SERVER_DEFAULT_PASSWORD),
-        SERVER_DEFAULT_PASSWORD,
-        LISTEN_PORT
-    };
 
     if (resolve_init(loop, NULL, 0) < 0) {
         logger_error("resolve_init fail\n");
@@ -116,8 +130,8 @@ int main (int argc, char **argv) {
     //     exit(EXIT_FAILURE);
     // }
 
-    server_watcher.fd = create_and_bind(server.port, LISTEN_BACKLOG);
-    server_watcher.data = &server;
+    server_watcher.fd = create_and_bind(g_server.port, LISTEN_BACKLOG);
+    server_watcher.data = &g_server;
     if (server_watcher.fd < 0) {
         logger_error("create_and_bind fail, errno: [%d]\n", errno);
         exit(EXIT_FAILURE);
@@ -126,6 +140,7 @@ int main (int argc, char **argv) {
     ev_io_init(&server_watcher, accept_cb, server_watcher.fd, EV_READ);
     ev_io_start(loop, &server_watcher);
 
+    logger_info("start working, port: [%d]\n", g_server.port);
     ev_run(loop, 0);
 
     logger_info("exiting ...\n");

@@ -2,6 +2,7 @@
 #define SOCKS5_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <netinet/in.h>
 #include <ev.h>
 #include "buffer.h"
@@ -115,6 +116,7 @@ struct socks5_server {
     size_t plen;
     char password[SOCKS5_AUTH_USERNAMEPASSWORD_MAX_LEN];
     uint16_t port;
+    bool daemon;
 };
 
 struct socks5_conn {

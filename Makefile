@@ -7,7 +7,7 @@ LDFLAGS := -Wl,-rpath,bin,-rpath, -lm -L./ -Ideps/libev-4.24 -lev -Ideps/udns-0.
 
 vpath %.c src
 
-SOURCES := main.c logger.c netutils.c buffer.c callback.c socks5.c resolve.c
+SOURCES := main.c logger.c netutils.c buffer.c callback.c socks5.c resolve.c optparser.c
 
 ssserver: $(SOURCES) libev.a libudns.a
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -g -o $@
