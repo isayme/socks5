@@ -53,4 +53,4 @@ dkms.conf
 .vscode
 debug
 ssserver
-libev.a
+!deps/udns-0.4/configure.lib
