@@ -20,6 +20,10 @@ libudns.a:
 	cd deps/udns-0.4 && ./configure && make
 	cp deps/udns-0.4/libudns.a ./
 
+.PHONY: test
+test:
+	@./test/test.sh
+
 clean:
 	rm -rf ssserver
 	rm -rf libev.*
