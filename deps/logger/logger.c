@@ -38,9 +38,11 @@ int logger_init(char *filename, uint8_t options) {
     g_logger.fp = NULL;
     g_logger.with_color = LOGGER_COLOR_OFF;
 
-    g_logger.fp = fopen(filename, "a");
-    if (NULL == g_logger.fp) {
-        return errno;
+    if (filename) {
+        g_logger.fp = fopen(filename, "a");
+        if (NULL == g_logger.fp) {
+            return -1;
+        }
     }
 
     if (1 == isatty(STDOUT_FILENO) && LOGGER_COLOR_ON == (options & LOGGER_COLOR_MASK)) {

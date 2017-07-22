@@ -14,7 +14,7 @@ static struct ev_timer g_resolve_timeout_watcher;
 static void resolve_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     struct dns_ctx *ctx = (struct dns_ctx *)w->data;
 
-    logger_debug("resolve_sock_cb %x\n", revents);
+    logger_trace("resolve_sock_cb %x\n", revents);
 
     if (revents & EV_READ) {
         dns_ioevent(ctx, ev_now(loop));
@@ -22,7 +22,7 @@ static void resolve_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents) 
 }
 
 static void resolve_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents) {
-    logger_debug("resolve_timeout_cb %x\n", revents);
+    logger_trace("resolve_timeout_cb %x\n", revents);
 
     if (revents & EV_TIMER) {
         int next = dns_timeouts(NULL, -1, ev_now(loop));
@@ -40,7 +40,7 @@ static void resolve_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int rev
 static void dns_timer_setup_cb(struct dns_ctx *ctx, int timeout, void *data) {
     struct ev_loop *loop = (struct ev_loop *)data;
 
-    logger_debug("dns_timer_setup_cb %d\n", timeout);
+    logger_trace("dns_timer_setup_cb %d\n", timeout);
 
     if (ev_is_active(&g_resolve_timeout_watcher)) {
         ev_timer_stop(loop, &g_resolve_timeout_watcher);
@@ -107,7 +107,7 @@ void resolve_cancel(struct resolve_query_t *query) {
 static void dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void *data) {
     struct resolve_query_t *query = (struct resolve_query_t *)data;
 
-    logger_debug("dns_query_v4_cb\n");
+    logger_trace("dns_query_v4_cb\n");
 
     if (NULL == result) {
         logger_error("dns_query_v4_cb result is NULL\n");

@@ -11,6 +11,7 @@ int socks5_server_parse(int argc, char **argv) {
 
 #define OPTION_USERNAME_IDX 1
 #define OPTION_PASSWORD_IDX 2
+#define OPTION_LOGLEVEL_IDX 3
 
     int option_index = 0;
     struct option long_options[] = {
@@ -18,6 +19,7 @@ int socks5_server_parse(int argc, char **argv) {
         { "password",    required_argument,  &option_index,  OPTION_PASSWORD_IDX },
         { "port",        required_argument,  NULL,           'p'                 },
         { "daemon",      required_argument,  NULL,           'd'                 },
+        { "loglevel",    required_argument,  &option_index,  OPTION_LOGLEVEL_IDX },
         { "help",        no_argument,        NULL,           'h'                 },
         { 0,             0,                  NULL,           0                   }
     };
@@ -66,6 +68,23 @@ int socks5_server_parse(int argc, char **argv) {
                         logger_debug("password: [%s]\n", g_server.password);
                         g_server.plen = plen;
                         stpcpy(g_server.password, optarg);
+                        break;
+                    }
+                    case OPTION_LOGLEVEL_IDX: {
+                        if (0 == strcmp("trace", optarg)) {
+                            g_server.log_level = LOGGER_LEVEL_TRACE;
+                        } else if (0 == strcmp("debug", optarg)) {
+                            g_server.log_level = LOGGER_LEVEL_DEBUG;
+                        } else if (0 == strcmp("info", optarg)) {
+                            g_server.log_level = LOGGER_LEVEL_INFO;
+                        } else if (0 == strcmp("warning", optarg)) {
+                            g_server.log_level = LOGGER_LEVEL_WARNING;
+                        } else if (0 == strcmp("error", optarg)) {
+                            g_server.log_level = LOGGER_LEVEL_ERROR;
+                        } else if (0 == strcmp("fatal", optarg)) {
+                            g_server.log_level = LOGGER_LEVEL_FATAL;
+                        }
+                        logger_debug("log level: [%s]\n", optarg);
                         break;
                     }
                     default:

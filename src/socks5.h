@@ -118,6 +118,7 @@ struct socks5_server {
     uint16_t port;
     uint8_t auth_method;
     bool daemon;
+    uint8_t log_level;
 };
 
 struct socks5_conn {

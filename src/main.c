@@ -98,7 +98,8 @@ struct socks5_server g_server = {
     "",
     LISTEN_PORT,
     SOCKS5_AUTH_NOAUTH,
-    false
+    false,
+    LOGGER_LEVEL_INFO
 };
 
 int main (int argc, char **argv) {
@@ -113,6 +114,8 @@ int main (int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
     }
+
+    logger_init(NULL, g_server.log_level | LOGGER_COLOR_ON);
 
     logger_info("starting ...\n");
 
