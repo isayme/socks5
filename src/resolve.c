@@ -22,8 +22,6 @@ static void resolve_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents) 
 }
 
 static void resolve_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents) {
-    struct dns_ctx *ctx = (struct dns_ctx *)w->data;
-
     logger_debug("resolve_timeout_cb %x\n", revents);
 
     if (revents & EV_TIMER) {

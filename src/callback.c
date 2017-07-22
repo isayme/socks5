@@ -79,16 +79,7 @@ _close_conn:
 }
 
 int connect_to_remote(struct socks5_conn *conn, struct sockaddr_storage *storage) {
-    struct ev_loop *loop = conn->loop;
-    struct socks5_client_conn *client = &conn->client;
     struct socks5_remote_conn *remote = &conn->remote;
-
-    struct socks5_response reply = {
-        SOCKS5_VERSION,
-        SOCKS5_RESPONSE_SERVER_FAILURE,
-        SOCKS5_RSV,
-        SOCKS5_ADDRTYPE_IPV4
-    };
 
     int fd = 0;
     socklen_t address_len;
@@ -307,7 +298,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTING);
             }
 
-            buffer_concat(client->output, &res, sizeof(struct socks5_userpass_res));
+            buffer_concat(client->output, (char *)&res, sizeof(struct socks5_userpass_res));
 
             buffer_reset(client->input);
             ev_io_stop(loop, w);
