@@ -18,13 +18,14 @@ int socks5_server_parse(int argc, char **argv) {
         { "password",    required_argument,  &option_index,  OPTION_PASSWORD_IDX },
         { "port",        required_argument,  NULL,           'p'                 },
         { "daemon",      required_argument,  NULL,           'd'                 },
+        { "help",        no_argument,        NULL,           'h'                 },
         { 0,             0,                  NULL,           0                   }
     };
 
     int c;
 
     while (1) {
-        c = getopt_long (argc, argv, "dp:", long_options, NULL);
+        c = getopt_long (argc, argv, "hdp:", long_options, NULL);
 
         // end of the options.
         if (-1 == c) {
