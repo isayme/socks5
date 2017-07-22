@@ -219,7 +219,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 logger_debug("invalid socks5 version: [%d]\n", method_req->ver);
                 goto _close_conn;
             }
-            if (client->input->used < (method_req->nmethods + 2)) {
+            if (buffer_len(client->input) < (method_req->nmethods + 2)) {
                 logger_debug("need more data\n");
                 // wating more data
                 return;
@@ -263,26 +263,26 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 goto _close_conn;
             }
 
-            if (client->input->used < 2) {
+            if (buffer_len(client->input) < 2) {
                 logger_warn("no username len, need more data\n");
                 // wating more data
                 return;
             }
             req.ulen = *(client->input->data + 1);
-            if (client->input->used < (2 + req.ulen)) {
+            if (buffer_len(client->input) < (2 + req.ulen)) {
                 logger_warn("no username, need more data\n");
                 // wating more data
                 return;
             }
             memcpy(req.username, client->input->data + 2, req.ulen);
 
-            if (client->input->used < (req.ulen + 3)) {
+            if (buffer_len(client->input) < (req.ulen + 3)) {
                 logger_warn("no password len, need more data\n");
                 // wating more data
                 return;
             }
             req.plen = *(client->input->data + req.ulen + 2);
-            if (client->input->used < (req.ulen + req.plen + 3)) {
+            if (buffer_len(client->input) < (req.ulen + req.plen + 3)) {
                 logger_warn("no password, need more data\n");
                 // wating more data
                 return;
@@ -322,7 +322,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             }
 
             // wait more data
-            if (client->input->used < sizeof(struct socks5_request)) {
+            if (buffer_len(client->input) < sizeof(struct socks5_request)) {
                 return;
             }
 
@@ -345,7 +345,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
 
             switch (req->addrtype) {
                 case SOCKS5_ADDRTYPE_IPV4: {
-                    if (client->input->used < (sizeof(struct socks5_request) + 6)) {
+                    if (buffer_len(client->input) < (sizeof(struct socks5_request) + 6)) {
                         logger_debug("wait more data\n");
                         return;
                     }
@@ -365,12 +365,12 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                 }
                 case SOCKS5_ADDRTYPE_DOMAIN: {
                     // hostname length
-                    if (client->input->used < (sizeof(struct socks5_request) + 1)) {
+                    if (buffer_len(client->input) < (sizeof(struct socks5_request) + 1)) {
                         logger_debug("wait more data\n");
                         return;
                     }
                     int hostname_len = *(client->input->data + sizeof(struct socks5_request));
-                    if (client->input->used < (sizeof(struct socks5_request) + hostname_len + 3)) {
+                    if (buffer_len(client->input) < (sizeof(struct socks5_request) + hostname_len + 3)) {
                         logger_debug("wait more data\n");
                         return;
                     }
@@ -417,7 +417,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
                     break;
                 }
                 case SOCKS5_ADDRTYPE_IPV6: {
-                    if (client->input->used < (sizeof(struct socks5_request) + 18)) {
+                    if (buffer_len(client->input) < (sizeof(struct socks5_request) + 18)) {
                         logger_debug("wait more data\n");
                         return;
                     }
@@ -465,7 +465,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
         }
         case SOCKS5_CONN_STAGE_STREAM:
             // send to remote
-            buffer_concat(remote->output, (char *)client->input->data, client->input->used);
+            buffer_concat(remote->output, (char *)client->input->data, buffer_len(client->input));
             buffer_reset(client->input);
             ev_io_start(loop, remote->ww);
             break;
@@ -496,7 +496,7 @@ void client_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     ssize_t size;
 
     while (1) {
-        size_t remain = client->output->used - idx;
+        size_t remain = buffer_len(client->output) - idx;
         if (remain <= 0) {
             // all data send, stop
             buffer_reset(client->output);
@@ -589,7 +589,7 @@ void remote_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
         }
     }
 
-    buffer_concat(client->output, remote->input->data, remote->input->used);
+    buffer_concat(client->output, remote->input->data, buffer_len(remote->input));
     buffer_reset(remote->input);
     ev_io_start(loop, client->ww);
 
@@ -630,7 +630,7 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             // connected
             socks5_conn_setstage(conn, SOCKS5_CONN_STAGE_CONNECTED);
             buffer_concat(client->output, (char *)&reply, sizeof(reply));
-            buffer_concat(client->output, remote->bndaddr->data, remote->bndaddr->used);
+            buffer_concat(client->output, remote->bndaddr->data, buffer_len(remote->bndaddr));
             logger_info("remote connected host=%s, port=%d\n", remote->hostname, remote->port);
         }
 
@@ -646,7 +646,7 @@ void remote_send_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
     ssize_t idx = 0;
     ssize_t size;
     while (1) {
-        size_t remain = remote->output->used - idx;
+        size_t remain = buffer_len(remote->output) - idx;
         if (remain <= 0) {
             // all data send, stop
             buffer_reset(remote->output);

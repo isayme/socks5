@@ -6,13 +6,14 @@ CXXFLAGS := $(CFLAGS)
 LDFLAGS := -Wl,-rpath,bin,-rpath, -lm -L./ \
 	-Ideps/libev-4.24 -lev 	\
 	-Ideps/udns-0.4 -ludns	\
-	-Ideps/logger -llogger
+	-Ideps/logger -llogger	\
+	-Ideps/buffer -lbuffer
 
 vpath %.c src
 
-SOURCES := main.c netutils.c buffer.c callback.c socks5.c resolve.c optparser.c help.c
+SOURCES := main.c netutils.c callback.c socks5.c resolve.c optparser.c help.c
 
-ssserver: $(SOURCES) libev.a libudns.a liblogger.a
+ssserver: $(SOURCES) libev.a libudns.a liblogger.a libbuffer.a
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -g -o $@
 
 libev.a:
@@ -26,6 +27,10 @@ libudns.a:
 liblogger.a:
 	cd deps/logger && make liblogger.a
 	cp deps/logger/liblogger.a ./
+
+libbuffer.a:
+	cd deps/buffer && make libbuffer.a
+	cp deps/buffer/libbuffer.a ./
 
 .PHONY: test
 test:
