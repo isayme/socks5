@@ -61,7 +61,7 @@ int logger_printf(uint8_t log_level, const char *color, const char *format, ...)
     int nwritten = 0;
     va_list arg;
 
-    if (log_level > g_logger.level) {
+    if (log_level < g_logger.level) {
         return 0;
     }
 
