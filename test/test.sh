@@ -2,7 +2,7 @@
 
 TEST_URL='http://httpbin.org/ip'
 CURL_ADDR_IPV4="curl -s -x socks5://localhost:23456"
-CURL_ADDR_DOMAIN="curl -s -x socks5://localhost:23456"
+CURL_ADDR_DOMAIN="curl -s -x socks5h://localhost:23456"
 
 expected=$(curl -s $TEST_URL)
 

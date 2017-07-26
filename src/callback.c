@@ -334,6 +334,7 @@ void client_recv_cb(struct ev_loop *loop, struct ev_io *w, int revents) {
             struct sockaddr_storage storage;
             memset(&storage, 0, sizeof(struct sockaddr_storage));
 
+            logger_debug("addrtype [%d]\n", req->addrtype);
             switch (req->addrtype) {
                 case SOCKS5_ADDRTYPE_IPV4: {
                     if (buffer_len(client->input) < (sizeof(struct socks5_request) + 6)) {
