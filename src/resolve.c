@@ -53,13 +53,14 @@ static void dns_timer_setup_cb(struct dns_ctx *ctx, int timeout, void *data) {
 }
 
 int resolve_init(struct ev_loop *loop, char **nameservers, int nameserver_num) {
+    int i;
     if (NULL == nameservers) {
         dns_reset(g_ctx);
         dns_init(g_ctx, 0);
     } else {
         dns_reset(g_ctx);
 
-        for (int i = 0; i < nameserver_num; i++) {
+        for (i = 0; i < nameserver_num; i++) {
             dns_add_serv(g_ctx, nameservers[i]);
         }
     }
