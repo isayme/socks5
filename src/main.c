@@ -103,7 +103,7 @@ struct socks5_server g_server = {
 };
 
 int main (int argc, char **argv) {
-    if (socks5_server_parse(argc, argv) < 1) {
+    if (socks5_server_parse(argc, argv) < 0) {
         help();
         exit(EXIT_FAILURE);
     }
