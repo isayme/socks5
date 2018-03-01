@@ -110,6 +110,7 @@ void socks5_conn_close(struct socks5_conn *conn) {
     if (conn->remote.fd) {
         close(conn->remote.fd);
     }
+    free(conn);
 }
 
 void socks5_conn_setstage(struct socks5_conn *conn, uint8_t stage) {
