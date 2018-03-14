@@ -2,6 +2,7 @@
 
 ## Quick Start
 ```
+# git submodule update --init --recursive
 # make
 # ./ssserver
 ```
