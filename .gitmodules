@@ -1,0 +1,12 @@
+[submodule "src/buffer"]
+	path = src/buffer
+	url = https://github.com/shiffthq/buffer.git
+[submodule "src/libev"]
+	path = src/libev
+	url = https://github.com/shadowsocks/libev.git
+[submodule "src/logger"]
+	path = src/logger
+	url = https://github.com/shiffthq/logger.git
+[submodule "src/udns"]
+	path = src/udns
+	url = https://github.com/ortclib/udns.git
