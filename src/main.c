@@ -31,7 +31,7 @@ static void signal_handler(int sig) {
         case SIGTERM:
             break;
         default:
-            logger_warn("unkown signal [%d]\n", sig);
+            logger_warn("unknown signal [%d]\n", sig);
     }
 }
 
