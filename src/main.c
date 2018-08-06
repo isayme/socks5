@@ -108,14 +108,14 @@ int main (int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    logger_init(NULL, g_server.log_level | LOGGER_COLOR_ON);
+
     if (g_server.daemon) {
         if (daemon(1, 0) < 0) {
             logger_error("daemon fail, errno [%d]\n", errno);
             exit(EXIT_FAILURE);
         }
     }
-
-    logger_init(NULL, g_server.log_level | LOGGER_COLOR_ON);
 
     logger_info("starting ...\n");
 
