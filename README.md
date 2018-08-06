@@ -2,10 +2,20 @@
 
 ## Quick Start
 ```
-# git submodule update --init --recursive
-# make
-# ./ssserver
+$ git submodule update --init --recursive
+$ make
+$ ./ssserver
 ```
+
+## Help
+Call ssserver with the --help option for a list of command-line arguments.
+
+## Testing
+Tests can be run with:
+```
+$ make test
+```
+The proxy server is expected to be bound to port 23456 for the tests to work. Start it with -p 23456.
 
 ### RFCs
 - [RFC1035: DOMAIN NAMES - IMPLEMENTATION AND SPECIFICATION](https://tools.ietf.org/html/rfc1035)
